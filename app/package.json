@@ -1,0 +1,28 @@
+{
+  "name": "claude-usage-tray",
+  "version": "1.0.0",
+  "description": "macOS menu bar app showing official Claude Code rate limit usage (5h / 7d), pixel art, pastel semaphore colors",
+  "main": "src/main.js",
+  "private": true,
+  "author": "malenitaa",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron .",
+    "build": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.malenitaa.claude-usage-tray",
+    "productName": "Claude Usage",
+    "files": [
+      "src/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": "dmg"
+    }
+  }
+}
