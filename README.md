@@ -3,6 +3,9 @@
 Ícono pixel en la barra de menú de macOS que muestra el uso real de cupo de
 Claude Code (ventanas de 5 horas y 7 días), con colores semáforo pastel.
 
+> Este README es técnico (arquitectura, seguridad, desarrollo). Si solo
+> querés descargarlo y usarlo, andá directo a **[INSTALL.md](INSTALL.md)**.
+
 ## Arquitectura de dos partes — y por qué
 
 **1. `statusline/claude-usage-statusline.sh`** — la fuente de verdad.
@@ -148,3 +151,27 @@ rato no corriste Claude Code), y la aclaración: *"dato oficial de
 Anthropic, actualizado la última vez que usaste Claude Code"*.
 
 Refresca cada ~18s, sin polling agresivo.
+
+## Modelo de amenazas y mapeo a OWASP
+
+Esto no es una app web, así que el OWASP Top 10 (pensado para eso) no
+mapea 1:1, pero vale repasar cada categoría con la contraparte real de
+una app de escritorio local:
+
+| Categoría OWASP | Aplica acá | Mitigación |
+| --- | --- | --- |
+| A01 Broken Access Control | Sí (equivalente local) | El archivo de estado vive en `$HOME`, con los permisos default del usuario. La app no pide ni necesita privilegios elevados. |
+| A02 Cryptographic Failures | No | No se manejan credenciales ni datos sensibles — solo dos porcentajes y dos timestamps. |
+| A03 Injection | Sí | El script parsea stdin **solo** con `jq` (nunca interpola en un string de shell/heredoc/`eval`). Probado con payload adversarial (`cwd` con `` `id`;rm -rf ~ ``) sin éxito. |
+| A04 Insecure Design | Sí | Separación deliberada: el script (única pieza con acceso al dato real) solo puede escribir su propio archivo; la app (única pieza con UI) solo puede leerlo. Ninguna de las dos partes puede hacer lo que le corresponde a la otra. |
+| A05 Security Misconfiguration | Sí | `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, `Menu.setApplicationMenu(null)`, CSP estricta (`default-src 'none'`, sin `unsafe-inline`, sin `connect-src`), `will-navigate`/`setWindowOpenHandler` bloqueados. |
+| A06 Vulnerable & Outdated Components | Sí | Corré `npm audit` en `app/` antes de cada release y mantené Electron actualizado (`npm outdated`). Al momento de este commit: 0 vulnerabilidades conocidas. |
+| A07 ID & Auth Failures | No | No hay login ni sesión — la única "identidad" es la sesión ya autenticada de Claude Code en tu máquina. |
+| A08 Software & Data Integrity Failures | Sí (parcial) | Sin red, sin dependencias remotas en runtime. **Pendiente:** los builds no están firmados ni notarizados (ver [INSTALL.md](INSTALL.md) sobre Gatekeeper) — si vas a distribuir el `.dmg` más ampliamente, considerá firmarlo con un Apple Developer ID. |
+| A09 Logging & Monitoring | Sí (equivalente) | Los mensajes de error mostrados al usuario son genéricos a propósito — nunca se expone `err.message` ni paths absolutos (que revelarían tu username vía `$HOME`) en la UI. Cualquier texto que termina en el DOM se inserta con `textContent`, nunca `innerHTML`, así que aunque el archivo de estado tuviera contenido raro, no se ejecuta como HTML/JS. |
+| A10 SSRF | No | Cero llamadas de red salientes en ambas partes. |
+
+Resumen: sí, el diseño resiste el ejercicio de pensarlo con la lupa de
+OWASP — el punto más débil real para distribución masiva es A08 (falta
+de firma/notarización de Apple), que es un tema de distribución, no de
+código.

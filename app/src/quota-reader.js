@@ -18,7 +18,11 @@ async function readQuotaStatus() {
         written_at: null
       };
     }
-    return { available: false, message: `No se pudo leer el archivo de estado: ${err.message}`, written_at: null };
+    // Don't surface err.message / err.path to the UI — on some error codes
+    // (e.g. EACCES) it echoes the full filesystem path, which can include
+    // the local username. Keep the user-facing message generic; anyone
+    // debugging for real has the source right here.
+    return { available: false, message: 'No se pudo leer el archivo de estado.', written_at: null };
   }
 
   try {

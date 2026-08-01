@@ -46,10 +46,18 @@ const AVAILABLE_TEMPLATE = document.querySelector('.panel').innerHTML;
 
 function renderUnavailable(message) {
   const panel = document.querySelector('.panel');
-  panel.innerHTML = `
-    <header class="panel-title">CLAUDE USAGE</header>
-    <div class="unavailable">${message || 'Sin datos disponibles.'}</div>
-  `;
+  panel.innerHTML = ''; // clear without ever inserting untrusted text as HTML
+
+  const header = document.createElement('header');
+  header.className = 'panel-title';
+  header.textContent = 'CLAUDE USAGE';
+
+  const body = document.createElement('div');
+  body.className = 'unavailable';
+  body.textContent = message || 'Sin datos disponibles.'; // textContent, never innerHTML
+
+  panel.appendChild(header);
+  panel.appendChild(body);
 }
 
 function ensureAvailableTemplate() {
