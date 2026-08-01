@@ -30,9 +30,9 @@ function formatCountdown(resetsAtEpochSeconds) {
 }
 
 function formatUpdated(writtenAtEpochSeconds) {
-  if (writtenAtEpochSeconds == null) return 'ultima actualizacion: --';
+  if (writtenAtEpochSeconds == null) return 'última actualización: --';
   const d = new Date(writtenAtEpochSeconds * 1000);
-  return `ultima actualizacion: ${d.toLocaleTimeString()}`;
+  return `última actualización: ${d.toLocaleTimeString()}`;
 }
 
 function renderMeter(sectionId, pct, resetsAt) {
@@ -77,6 +77,7 @@ async function refresh() {
   renderMeter('five-hour', status.five_hour?.pct ?? null, status.five_hour?.resets_at ?? null);
   renderMeter('seven-day', status.seven_day?.pct ?? null, status.seven_day?.resets_at ?? null);
   document.querySelector('[data-field="updated"]').textContent = formatUpdated(status.written_at);
+  document.querySelector('[data-field="model"]').textContent = status.model ? `modelo: ${status.model}` : '';
 }
 
 document.addEventListener('DOMContentLoaded', () => {

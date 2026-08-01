@@ -14,7 +14,7 @@ async function readQuotaStatus() {
     if (err.code === 'ENOENT') {
       return {
         available: false,
-        message: 'No hay datos todavia. Corre Claude Code al menos una vez con el statusline configurado.',
+        message: 'No hay datos todavía. Corré Claude Code al menos una vez con el statusline configurado.',
         written_at: null
       };
     }
@@ -29,7 +29,7 @@ async function readQuotaStatus() {
     const parsed = JSON.parse(raw);
     return parsed;
   } catch (err) {
-    return { available: false, message: 'El archivo de estado tiene un formato invalido.', written_at: null };
+    return { available: false, message: 'El archivo de estado tiene un formato inválido.', written_at: null };
   }
 }
 

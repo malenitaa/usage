@@ -1,6 +1,6 @@
 # usage
 
-Ícono pixel en la barra de menú de macOS que muestra el uso real de cupo de
+Ícono píxel en la barra de menú de macOS que muestra el uso real de cupo de
 Claude Code (ventanas de 5 horas y 7 días), con colores semáforo pastel.
 
 > Este README es técnico (arquitectura, seguridad, desarrollo). Si solo
@@ -19,7 +19,7 @@ script lo escribe a `~/.claude/quota-status/current.json`.
 **2. `app/`** — la visualización. Una app Electron de solo bandeja (tray),
 sin ventana visible salvo el popover al hacer click. Lee
 `~/.claude/quota-status/current.json` cada ~18s y lo muestra: un ícono
-pixel en la barra de menú (chispa de 4 puntas, coloreada según el peor de
+píxel en la barra de menú (chispa de 4 puntas, coloreada según el peor de
 los dos porcentajes) y un popover con el detalle de cada ventana.
 
 Están separadas a propósito:
@@ -69,6 +69,7 @@ Requiere `jq` (`brew install jq` si no lo tenés).
 ```json
 {
   "available": true,
+  "model": "Opus",
   "five_hour": { "pct": 23.5, "resets_at": 1738425600 },
   "seven_day": { "pct": 41.2, "resets_at": 1738857600 },
   "written_at": 1738400000
@@ -79,10 +80,12 @@ Si `rate_limits` no viene en el payload (cuenta no es Pro/Max, versión
 vieja de Claude Code, o todavía no hubo una respuesta en la sesión):
 
 ```json
-{ "available": false, "message": "...", "written_at": 1738400000 }
+{ "available": false, "model": "Opus", "message": "...", "written_at": 1738400000 }
 ```
 
-`resets_at` y `written_at` son epoch seconds (UTC).
+`resets_at` y `written_at` son epoch seconds (UTC). `model` sale de
+`.model.display_name` (o `.model.id` como respaldo) del payload de
+Claude Code, y puede ser `null` si todavía no llegó ese campo.
 
 ### Seguridad
 
@@ -144,11 +147,13 @@ el peor de `five_hour.pct` / `seven_day.pct`:
 | 80–100%  | rojo coral pastel `#FFB3A7`    |
 | sin datos | gris neutro `#C9C9C9`         |
 
-El popover muestra, para 5h y 7 días por separado: barra pixel segmentada,
+El popover muestra, para 5h y 7 días por separado: barra píxel segmentada,
 porcentaje exacto, countdown de reset (`"2h 30m"`), timestamp de la
 última actualización del archivo (para detectar datos "stale" si hace
-rato no corriste Claude Code), y la aclaración: *"dato oficial de
-Anthropic, actualizado la última vez que usaste Claude Code"*.
+rato no corriste Claude Code), la aclaración: *"dato oficial de
+Anthropic, actualizado la última vez que usaste Claude Code"*, y —
+chiquito, abajo de todo — el modelo de Claude que estabas usando
+cuando se registró ese dato (`model.display_name` del payload).
 
 Refresca cada ~18s, sin polling agresivo.
 
