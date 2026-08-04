@@ -32,21 +32,53 @@ fi
 
 input="$(cat)"
 
+# Claude Code can run multiple concurrent sessions (different terminals,
+# a desktop app session, etc.) that all share this one state file. Each
+# session's payload only carries the rate_limits it personally last saw,
+# which can lag behind another session's fresher reading. To avoid a
+# lagging session silently overwriting a higher, more current percentage
+# with a stale lower one, we compare against whatever is already on disk
+# and flag (not discard) suspicious drops.
+old_state="{}"
+if [[ -f "$STATE_FILE" ]]; then
+  old_candidate="$(cat "$STATE_FILE" 2>/dev/null || true)"
+  if printf '%s' "$old_candidate" | jq -e . >/dev/null 2>&1; then
+    old_state="$old_candidate"
+  fi
+fi
+
 # Single jq pass over the raw stdin payload — the only place untrusted
 # data is parsed. Everything downstream reads from jq's own output,
 # never from $input again.
 state_json="$(
-  printf '%s' "$input" | jq -c --argjson written_at "$now_epoch" '
+  printf '%s' "$input" | jq -c --argjson written_at "$now_epoch" --argjson old_state "$old_state" '
     def round1dp: if . == null then null else ((. * 10 | round) / 10) end;
-    {
+    # A window read is a suspicious drop if the previous reading is still
+    # inside its own reset window (has not actually rolled over yet) but
+    # the new pct is much lower - that pattern means another, staler
+    # session just wrote its older number, not that usage went down.
+    def flag_drop(old_window; new_pct):
+      (old_window.pct // null) as $old_pct
+      | (old_window.resets_at // null) as $old_resets_at
+      | if $old_pct == null or new_pct == null or $old_resets_at == null then false
+        elif ($written_at < $old_resets_at) and (($old_pct - new_pct) >= 20) then true
+        else false
+        end;
+    ($old_state.five_hour // null) as $old_fh
+    | ($old_state.seven_day // null) as $old_sd
+    | (.rate_limits.five_hour.used_percentage // null | round1dp) as $fh_pct
+    | (.rate_limits.seven_day.used_percentage // null | round1dp) as $sd_pct
+    | {
       model: (.model.display_name // .model.id // null),
       five_hour: {
-        pct: (.rate_limits.five_hour.used_percentage // null | round1dp),
-        resets_at: (.rate_limits.five_hour.resets_at // null)
+        pct: $fh_pct,
+        resets_at: (.rate_limits.five_hour.resets_at // null),
+        stale_suspect: flag_drop($old_fh; $fh_pct)
       },
       seven_day: {
-        pct: (.rate_limits.seven_day.used_percentage // null | round1dp),
-        resets_at: (.rate_limits.seven_day.resets_at // null)
+        pct: $sd_pct,
+        resets_at: (.rate_limits.seven_day.resets_at // null),
+        stale_suspect: flag_drop($old_sd; $sd_pct)
       },
       written_at: $written_at
     }

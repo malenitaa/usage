@@ -35,11 +35,14 @@ function formatUpdated(writtenAtEpochSeconds) {
   return `última actualización: ${d.toLocaleTimeString()}`;
 }
 
-function renderMeter(sectionId, pct, resetsAt) {
+function renderMeter(sectionId, pct, resetsAt, staleSuspect) {
   const section = document.getElementById(sectionId);
   section.querySelector('[data-field="pct"]').textContent = pct == null ? '--%' : `${pct}%`;
   renderBar(section.querySelector('[data-field="bar"]'), pct);
   section.querySelector('[data-field="reset"]').textContent = formatCountdown(resetsAt);
+  section.querySelector('[data-field="stale"]').textContent = staleSuspect
+    ? 'dato posiblemente desactualizado (otra sesión de Claude Code)'
+    : '';
 }
 
 const AVAILABLE_TEMPLATE = document.querySelector('.panel').innerHTML;
@@ -74,8 +77,8 @@ async function refresh() {
   }
 
   ensureAvailableTemplate();
-  renderMeter('five-hour', status.five_hour?.pct ?? null, status.five_hour?.resets_at ?? null);
-  renderMeter('seven-day', status.seven_day?.pct ?? null, status.seven_day?.resets_at ?? null);
+  renderMeter('five-hour', status.five_hour?.pct ?? null, status.five_hour?.resets_at ?? null, status.five_hour?.stale_suspect ?? false);
+  renderMeter('seven-day', status.seven_day?.pct ?? null, status.seven_day?.resets_at ?? null, status.seven_day?.stale_suspect ?? false);
   document.querySelector('[data-field="updated"]').textContent = formatUpdated(status.written_at);
   document.querySelector('[data-field="model"]').textContent = status.model ? `modelo: ${status.model}` : '';
 }

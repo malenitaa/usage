@@ -83,6 +83,16 @@ html, body {
   color: #9c9c9c;
 }
 
+.meter-stale {
+  margin-top: 2px;
+  font-size: 9px;
+  color: #FFB3A7;
+}
+
+.meter-stale:empty {
+  display: none;
+}
+
 .divider {
   height: 2px;
   background: #4a4a4a;
