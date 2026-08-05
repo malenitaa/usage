@@ -113,6 +113,24 @@ have room for both. An invalid value falls back to `"numbers"`.
 Takes effect on the next time Claude Code refreshes the statusline (per
 its own `refreshInterval`) — no restart needed.
 
+### Both settings, one file
+
+`trayDisplay` and `statuslineDisplay` live in the same
+`~/.claude/usage-app-config.json`, so set both together as one JSON
+object — not as two separate files:
+
+```json
+{
+  "trayDisplay": ["bar"],
+  "statuslineDisplay": "numbers"
+}
+```
+
+If you edit this by hand (or overwrite it with a one-off `echo` /
+`cat >`), double-check you're not replacing the whole file and losing
+whichever key you'd set before — merge in the new key instead of
+overwriting.
+
 ## Privacy and security
 
 - **Zero network.** Neither piece ever makes internet calls.
