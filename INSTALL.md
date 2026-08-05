@@ -27,9 +27,9 @@ en dos archivos chicos:
 - [`statusline/claude-usage-statusline.sh`](statusline/claude-usage-statusline.sh) — menos de 90 líneas de bash.
 - [`app/src/`](app/src/) — la app, unos pocos archivos JavaScript cortos.
 
-No hace ninguna llamada de red, en ningún lado. Todo el detalle técnico
-de por qué es seguro está en el [README.md](README.md), sección "Modelo
-de amenazas y mapeo a OWASP".
+No hace ninguna llamada de red, en ningún lado. Más detalle sobre cómo
+está armado y por qué es seguro en el [README.md](README.md), sección
+"Privacidad y seguridad".
 
 ## Paso 1 — el script que lee tu cupo
 

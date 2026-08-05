@@ -1,70 +1,75 @@
 # usage
 
-Ícono píxel en la barra de menú de macOS que muestra el uso real de cupo de
-Claude Code (ventanas de 5 horas y 7 días), con colores semáforo pastel.
+Ícono píxel en la barra de menú de macOS que muestra cuánto cupo de
+**Claude Code** llevás gastado — el dato oficial de Anthropic para las
+ventanas de 5 horas y 7 días — con colores semáforo pastel.
 
-> Este README es técnico (arquitectura, seguridad, desarrollo). Si solo
-> querés descargarlo y usarlo, andá directo a **[INSTALL.md](INSTALL.md)**.
+- 🟢 verde: tranqui (0–50%)
+- 🟡 amarillo: mitad de camino (50–80%)
+- 🔴 rojo: te estás quedando sin cupo (80–100%)
 
-## Arquitectura de dos partes — y por qué
+Click en el ícono y ves el detalle: porcentaje exacto de cada ventana,
+cuánto falta para que se resetee, y cuándo se actualizó el dato por
+última vez.
 
-**1. `statusline/claude-usage-statusline.sh`** — la fuente de verdad.
-Es el script que corre Claude Code (via `statusLine` en `settings.json`)
-cada vez que abrís o usás una sesión. Recibe por stdin el JSON oficial de
-Claude Code, que para cuentas Pro/Max incluye `rate_limits.five_hour` y
-`rate_limits.seven_day` (porcentaje usado + timestamp de reset). Este dato
-es **oficial de Anthropic**, no una estimación calculada localmente. El
-script lo escribe a `~/.claude/quota-status/current.json`.
+## ¿Querés instalarlo?
 
-**2. `app/`** — la visualización. Una app Electron de solo bandeja (tray),
-sin ventana visible salvo el popover al hacer click. Lee
-`~/.claude/quota-status/current.json` cada ~18s y lo muestra: un ícono
-píxel en la barra de menú (chispa de 4 puntas, coloreada según el peor de
-los dos porcentajes) y un popover con el detalle de cada ventana.
+Andá directo a **[INSTALL.md](INSTALL.md)** — es una guía paso a paso
+pensada para cualquiera, sin necesidad de ser programador.
 
-Están separadas a propósito:
+Requisitos cortos: macOS, [Claude Code](https://claude.com/claude-code)
+con cuenta Pro o Max de claude.ai, `jq` y Node.js.
 
-- El script de statusline es la **única** pieza que tiene acceso al dato
-  real de Anthropic (vía stdin de Claude Code) — nunca hace requests de
-  red, y solo puede escribir a su propio archivo de estado.
-- La app Electron **nunca** escribe ese archivo, solo lo lee. Si la app
-  se cierra, crashea, o no se instala, el dato oficial se sigue
-  registrando igual cada vez que usás Claude Code. Si el script no corrió
-  nunca (o no sos cuenta Pro/Max), la app lo indica en vez de inventar
-  datos.
-- Esto evita que la app necesite tocar credenciales, hacer llamadas a la
-  API de Anthropic, o depender de que Claude Code esté corriendo en el
-  momento — solo lee un archivo JSON chico y local.
+## ¿Qué muestra exactamente?
 
-## Parte 1 — statusline
+Las cuentas Pro/Max de Claude Code tienen dos límites de uso que corren
+en paralelo: uno de **5 horas** y otro de **7 días**. Claude Code informa
+el porcentaje usado de cada uno — este proyecto agarra ese dato oficial
+(no es una estimación calculada por afuera) y lo deja siempre visible en
+tu barra de menú.
 
-### Instalación manual
+## Cómo funciona (versión corta)
 
-1. Confirmá que el script es ejecutable:
+Son dos piezas chicas que trabajan juntas:
 
-   ```bash
-   chmod +x ~/usage/statusline/claude-usage-statusline.sh
-   ```
+1. **Un script de statusline** (`statusline/claude-usage-statusline.sh`,
+   menos de 120 líneas de bash): Claude Code lo ejecuta solo cada vez que
+   usás una sesión, y el script guarda el dato de cupo en un archivito
+   JSON local (`~/.claude/quota-status/current.json`).
+2. **Una app de barra de menú** (`app/`, Electron): lee ese archivito
+   cada ~18 segundos y dibuja el ícono y el popover. Nada más.
 
-2. Agregá esto a `~/.claude/settings.json` (si ya tenés otras claves,
-   sumá `statusLine` sin borrar el resto):
+Están separadas a propósito: el script es el único que ve el dato real y
+solo escribe su propio archivo; la app solo lo lee. Si la app no está
+corriendo, el dato se sigue registrando igual.
 
-   ```json
-   {
-     "statusLine": {
-       "type": "command",
-       "command": "~/usage/statusline/claude-usage-statusline.sh",
-       "refreshInterval": 30
-     }
-   }
-   ```
+## Privacidad y seguridad
 
-3. La próxima vez que interactúes con Claude Code, el script corre y
-   escribe `~/.claude/quota-status/current.json`.
+- **Cero red.** Ninguna de las dos piezas hace llamadas a internet, nunca.
+- **Cero credenciales.** No toca tu API key, ni tu sesión, ni ningún dato
+  de tu cuenta — solo dos porcentajes y dos timestamps.
+- **Cero telemetría.** No hay cuentas, login ni tracking.
+- Todo el estado vive en un solo archivo local que podés abrir y leer
+  vos mismo: `~/.claude/quota-status/current.json`.
+- El código completo son dos archivos de bash/JavaScript cortos —
+  está pensado para que puedas leerlo entero antes de correrlo.
 
-Requiere `jq` (`brew install jq` si no lo tenés).
+## Para desarrolladores
 
-### Qué escribe
+```bash
+# correr la app en modo desarrollo
+cd app
+npm install
+npm run dev
+
+# empaquetar el .dmg (queda en app/dist/)
+npm run build
+```
+
+El script de statusline se configura vía la clave `statusLine` de
+`~/.claude/settings.json` — el detalle está en [INSTALL.md](INSTALL.md).
+
+Formato del archivo de estado que escribe el script:
 
 ```json
 {
@@ -76,107 +81,11 @@ Requiere `jq` (`brew install jq` si no lo tenés).
 }
 ```
 
-Si `rate_limits` no viene en el payload (cuenta no es Pro/Max, versión
-vieja de Claude Code, o todavía no hubo una respuesta en la sesión):
+`resets_at` y `written_at` son epoch seconds (UTC). Si no hay datos de
+`rate_limits` en el payload (cuenta que no es Pro/Max, o todavía no hubo
+respuesta en la sesión), escribe `{"available": false, ...}` con un
+mensaje explicando por qué.
 
-```json
-{ "available": false, "model": "Opus", "message": "...", "written_at": 1738400000 }
-```
+## Licencia
 
-`resets_at` y `written_at` son epoch seconds (UTC). `model` sale de
-`.model.display_name` (o `.model.id` como respaldo) del payload de
-Claude Code, y puede ser `null` si todavía no llegó ese campo.
-
-### Seguridad
-
-- Lee stdin **una sola vez**, y ese contenido crudo solo se pasa a `jq`
-  por pipe (nunca se interpola en un string de shell que después se
-  ejecuta, ni en heredocs, ni en `eval`). Se probó explícitamente con un
-  payload adversarial con metacaracteres de shell en `cwd`
-  (`` `id`;rm -rf ~ ``) para confirmar que no hay inyección de comandos.
-- Sin red. Sin `eval`. Solo escribe a su propio archivo de estado, con
-  escritura atómica (`mktemp` + `mv`).
-- Si `rate_limits` falta o el JSON es inválido, escribe
-  `{"available": false, ...}` en vez de crashear.
-
-## Parte 2 — app Electron
-
-### Desarrollo
-
-```bash
-cd app
-npm install
-npm run dev
-```
-
-### Build
-
-```bash
-cd app
-npm run build
-```
-
-Genera un `.dmg` en `app/dist/` (target `mac`).
-
-### Seguridad
-
-- `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true` en
-  el popover.
-- El `preload.js` expone **una sola función** vía `contextBridge`:
-  `window.quota.read()`. No hay `fs` genérico ni ningún otro API de Node
-  accesible desde el renderer — toda la lectura del archivo vive en el
-  proceso main (`src/quota-reader.js`), que es de **solo lectura**: nunca
-  escribe `~/.claude/quota-status/current.json`.
-- CSP estricta en el popover (`default-src 'none'`, sin `connect-src`,
-  sin scripts/estilos inline).
-- Sin telemetría, sin llamadas de red salientes.
-- Si el archivo de estado no existe o `available: false`, se muestra un
-  mensaje explicando que hace falta correr Claude Code al menos una vez
-  con el statusline configurado, o que la cuenta no es Pro/Max.
-
-### Ícono de la barra de menú
-
-Una chispa de 4 puntas dibujada a mano en pixel art (grid `9x9`, diseño
-propio — no es el logo/mascota real de Anthropic) coloreada entera según
-el peor de `five_hour.pct` / `seven_day.pct`:
-
-| Rango    | Color                        |
-| -------- | ----------------------------- |
-| 0–50%    | verde menta pastel `#A8E6C0`   |
-| 50–80%   | amarillo mantequilla `#FFE99A` |
-| 80–100%  | rojo coral pastel `#FFB3A7`    |
-| sin datos | gris neutro `#C9C9C9`         |
-
-El popover muestra, para 5h y 7 días por separado: barra píxel segmentada,
-porcentaje exacto, countdown de reset (`"2h 30m"`), timestamp de la
-última actualización del archivo (para detectar datos "stale" si hace
-rato no corriste Claude Code), la aclaración: *"dato oficial de
-Anthropic, actualizado la última vez que usaste Claude Code"*, y —
-chiquito, abajo de todo — el modelo de Claude que estabas usando
-cuando se registró ese dato (`model.display_name` del payload).
-
-Refresca cada ~18s, sin polling agresivo.
-
-## Modelo de amenazas y mapeo a OWASP
-
-Esto no es una app web, así que el OWASP Top 10 (pensado para eso) no
-mapea 1:1, pero vale repasar cada categoría con la contraparte real de
-una app de escritorio local:
-
-| Categoría OWASP | Aplica acá | Mitigación |
-| --- | --- | --- |
-| A01 Broken Access Control | Sí (equivalente local) | El archivo de estado vive en `$HOME`, con los permisos default del usuario. La app no pide ni necesita privilegios elevados. |
-| A02 Cryptographic Failures | No | No se manejan credenciales ni datos sensibles — solo dos porcentajes y dos timestamps. |
-| A03 Injection | Sí | El script parsea stdin **solo** con `jq` (nunca interpola en un string de shell/heredoc/`eval`). Probado con payload adversarial (`cwd` con `` `id`;rm -rf ~ ``) sin éxito. |
-| A04 Insecure Design | Sí | Separación deliberada: el script (única pieza con acceso al dato real) solo puede escribir su propio archivo; la app (única pieza con UI) solo puede leerlo. Ninguna de las dos partes puede hacer lo que le corresponde a la otra. |
-| A05 Security Misconfiguration | Sí | `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, `Menu.setApplicationMenu(null)`, CSP estricta (`default-src 'none'`, sin `unsafe-inline`, sin `connect-src`), `will-navigate`/`setWindowOpenHandler` bloqueados. |
-| A06 Vulnerable & Outdated Components | Sí | Corré `npm audit` en `app/` antes de cada release y mantené Electron actualizado (`npm outdated`). Al momento de este commit: 0 vulnerabilidades conocidas. |
-| A07 ID & Auth Failures | No | No hay login ni sesión — la única "identidad" es la sesión ya autenticada de Claude Code en tu máquina. |
-| A08 Software & Data Integrity Failures | Sí (parcial) | Sin red, sin dependencias remotas en runtime. **Pendiente:** los builds no están firmados ni notarizados (ver [INSTALL.md](INSTALL.md) sobre Gatekeeper) — si vas a distribuir el `.dmg` más ampliamente, considerá firmarlo con un Apple Developer ID. |
-| A09 Logging & Monitoring | Sí (equivalente) | Los mensajes de error mostrados al usuario son genéricos a propósito — nunca se expone `err.message` ni paths absolutos (que revelarían tu username vía `$HOME`) en la UI. Cualquier texto que termina en el DOM se inserta con `textContent`, nunca `innerHTML`, así que aunque el archivo de estado tuviera contenido raro, no se ejecuta como HTML/JS. |
-| A10 SSRF | No | Cero llamadas de red salientes en ambas partes. |
-
-Resumen: sí, el diseño resiste el ejercicio de pensarlo con la lupa de
-OWASP — el punto más débil real para distribución masiva es A08 (falta
-de firma/notarización de Apple), que es un tema de distribución, no de
-código.
+[MIT](LICENSE)
