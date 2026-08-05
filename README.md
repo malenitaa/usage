@@ -83,6 +83,33 @@ are on, the icon shrinks to a plain dot if `bar` is off, so the numbers
 aren't crowded by a color that isn't shown. Changes take effect on the
 next refresh (~18s) — no restart needed.
 
+## Configuring the terminal statusline
+
+Independent of the menu bar setting above — same config file, different
+key, and the two run as separate processes, so any combination of the
+two works. Add `statuslineDisplay` to `~/.claude/usage-app-config.json`:
+
+```json
+{ "statuslineDisplay": "bar" }
+```
+
+`statuslineDisplay` accepts one of:
+
+- `"numbers"` (default) — `Uso de Claude — 5h: 44%  7d: 38%`
+- `"bar"` — a 10-segment ASCII bar per window instead of the exact
+  number: `Uso de Claude — 5h [####------]  7d [####------]`
+- `"none"` — nothing is printed on a successful read. Errors (e.g. `jq`
+  missing, no quota data yet) are always shown regardless of this
+  setting, since those aren't a display preference — they mean
+  something needs fixing.
+
+Unlike the menu bar's three independent toggles, `bar` and `numbers`
+here are mutually exclusive — pick one, a single terminal line doesn't
+have room for both. An invalid value falls back to `"numbers"`.
+
+Takes effect on the next time Claude Code refreshes the statusline (per
+its own `refreshInterval`) — no restart needed.
+
 ## Privacy and security
 
 - **Zero network.** Neither piece ever makes internet calls.

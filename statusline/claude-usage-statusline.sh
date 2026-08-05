@@ -17,6 +17,7 @@ set -euo pipefail
 
 STATE_DIR="$HOME/.claude/quota-status"
 STATE_FILE="$STATE_DIR/current.json"
+CONFIG_FILE="$HOME/.claude/usage-app-config.json"
 
 mkdir -p "$STATE_DIR"
 
@@ -28,6 +29,18 @@ if ! command -v jq >/dev/null 2>&1; then
   mv -f "$tmp_file" "$STATE_FILE"
   echo "Uso de Claude: jq no encontrado"
   exit 0
+fi
+
+# Independent of trayDisplay (the GUI menu bar's own setting, in the
+# same file) — this app and the GUI app are separate processes reading
+# the same config, so any combination of the two works without conflict.
+statusline_display="numbers"
+if [[ -f "$CONFIG_FILE" ]]; then
+  candidate="$(jq -r '.statuslineDisplay // "numbers"' "$CONFIG_FILE" 2>/dev/null || echo "numbers")"
+  case "$candidate" in
+    numbers | bar | none) statusline_display="$candidate" ;;
+    *) statusline_display="numbers" ;;
+  esac
 fi
 
 input="$(cat)"
@@ -96,11 +109,37 @@ printf '%s\n' "$state_json" > "$tmp_file"
 mv -f "$tmp_file" "$STATE_FILE"
 
 # Build the human-readable statusline line from our OWN trusted state
-# file (already-validated JSON), not from the raw stdin payload.
+# file (already-validated JSON), not from the raw stdin payload. "bar"
+# and "numbers" are mutually exclusive by design — a single terminal
+# line doesn't have room to show both without getting cramped, so pick
+# one or the other. "none" prints nothing on success (errors below are
+# always shown regardless of the setting, since they're not a display
+# preference — they mean something needs fixing).
 if [[ "$(printf '%s' "$state_json" | jq -r '.available')" == "true" ]]; then
-  fh="$(printf '%s' "$state_json" | jq -r 'if .five_hour.pct != null then (.five_hour.pct | tostring) else "?" end')"
-  sd="$(printf '%s' "$state_json" | jq -r 'if .seven_day.pct != null then (.seven_day.pct | tostring) else "?" end')"
-  printf 'Uso de Claude — 5h: %s%%  7d: %s%%\n' "$fh" "$sd"
+  case "$statusline_display" in
+    none)
+      : # intentionally silent
+      ;;
+    bar)
+      # 10-segment ASCII-only bar (no Unicode block glyphs) so it renders
+      # identically regardless of terminal font/encoding.
+      bars="$(
+        printf '%s' "$state_json" | jq -r '
+          def bar: (. // 0) as $p | ([$p / 10 | round, 10] | min) as $f
+            | ([range(0; 10) as $i | if $i < $f then "#" else "-" end] | join(""));
+          "\(.five_hour.pct | bar)\t\(.seven_day.pct | bar)"
+        '
+      )"
+      fh_bar="${bars%%$'\t'*}"
+      sd_bar="${bars#*$'\t'}"
+      printf 'Uso de Claude — 5h [%s]  7d [%s]\n' "$fh_bar" "$sd_bar"
+      ;;
+    numbers | *)
+      fh="$(printf '%s' "$state_json" | jq -r 'if .five_hour.pct != null then (.five_hour.pct | tostring) else "?" end')"
+      sd="$(printf '%s' "$state_json" | jq -r 'if .seven_day.pct != null then (.seven_day.pct | tostring) else "?" end')"
+      printf 'Uso de Claude — 5h: %s%%  7d: %s%%\n' "$fh" "$sd"
+      ;;
+  esac
 else
   printf 'Uso de Claude: sin datos todavía\n'
 fi
