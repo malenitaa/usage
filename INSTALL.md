@@ -1,44 +1,44 @@
-# Instalar y usar (para cualquiera, sin ser programador)
+# Install and use (for anyone, no coding needed)
 
-Esto te muestra, en la barra de menú de tu Mac, cuánto cupo de Claude
-Code llevás gastado en las últimas 5 horas y en los últimos 7 días —
-con el dato oficial que da Anthropic, no una estimación.
+This shows you, in your Mac's menu bar, how much Claude Code quota
+you've used in the last 5 hours and the last 7 days — with the official
+figure Anthropic reports, not an estimate.
 
-Requisitos:
+Requirements:
 
 - macOS.
-- [Claude Code](https://claude.com/claude-code) instalado, con una
-  cuenta **Pro o Max** de claude.ai (el dato de cupo solo existe para
-  esas cuentas).
-- [`jq`](https://jqlang.org/) instalado. Si no lo tenés:
+- [Claude Code](https://claude.com/claude-code) installed, with a
+  **Pro or Max** claude.ai account (quota data only exists for those
+  accounts).
+- [`jq`](https://jqlang.org/) installed. If you don't have it:
   ```bash
   brew install jq
   ```
-  (si no tenés Homebrew: [brew.sh](https://brew.sh/))
+  (if you don't have Homebrew: [brew.sh](https://brew.sh/))
 
-## Antes de instalar nada: revisá lo que vas a correr
+## Before installing anything: check what you're about to run
 
-Esto es software de código abierto que vas a bajar de internet y correr
-en tu máquina. Antes de instalar cualquier script o app así (esta
-incluida), es buena práctica mirar qué hace. Acá tenés todo para leer
-en dos archivos chicos:
+This is open-source software you're downloading from the internet and
+running on your machine. Before installing any script or app like this
+(this one included), it's good practice to look at what it does. Here's
+everything to read, in two short files:
 
-- [`statusline/claude-usage-statusline.sh`](statusline/claude-usage-statusline.sh) — menos de 90 líneas de bash.
-- [`app/src/`](app/src/) — la app, unos pocos archivos JavaScript cortos.
+- [`statusline/claude-usage-statusline.sh`](statusline/claude-usage-statusline.sh) — under 90 lines of bash.
+- [`app/src/`](app/src/) — the app, a handful of short JavaScript files.
 
-No hace ninguna llamada de red, en ningún lado. Más detalle sobre cómo
-está armado y por qué es seguro en el [README.md](README.md), sección
-"Privacidad y seguridad".
+It makes no network calls anywhere. More detail on how it's built and
+why it's safe in [README.md](README.md), under "Privacy and security."
 
-## Paso 1 — el script que lee tu cupo
+## Step 1 — the script that reads your quota
 
 ```bash
 git clone https://github.com/malenitaa/usage.git ~/usage
 chmod +x ~/usage/statusline/claude-usage-statusline.sh
 ```
 
-Abrí (o creá) `~/.claude/settings.json` y agregá esto. Si el archivo ya
-tiene contenido, sumá solo la clave `"statusLine"` sin borrar el resto:
+Open (or create) `~/.claude/settings.json` and add this. If the file
+already has content, just add the `"statusLine"` key without deleting
+the rest:
 
 ```json
 {
@@ -50,37 +50,36 @@ tiene contenido, sumá solo la clave `"statusLine"` sin borrar el resto:
 }
 ```
 
-Guardá, y la próxima vez que uses Claude Code (cualquier sesión), el
-dato empieza a registrarse solo. No hace falta reiniciar nada más.
+Save it, and the next time you use Claude Code (any session), data
+starts getting recorded automatically. Nothing else needs restarting.
 
-## Paso 2 — la app de la barra de menú
+## Step 2 — the menu bar app
 
-Andá a [Releases](https://github.com/malenitaa/usage/releases) y
-descargá el `.dmg` correspondiente a tu Mac (`arm64` si es una Mac con
-chip Apple M1/M2/M3/M4, o el otro `.dmg` si es una Mac más vieja con
-procesador Intel — si no estás segura/o, probá primero el `arm64`).
-Abrilo y arrastrá "Claude Usage" a "Applications" como cualquier otra app.
+Go to [Releases](https://github.com/malenitaa/usage/releases) and
+download the `.dmg` for your Mac (`arm64` if it's a Mac with an Apple
+M1/M2/M3/M4 chip, or the other `.dmg` if it's an older Intel Mac — if
+you're not sure, try `arm64` first). Open it and drag "Claude Usage"
+to "Applications" like any other app.
 
-### La primera vez que la abras, macOS te va a avisar algo
+### The first time you open it, macOS will warn you about something
 
-Como esta app no está firmada por un desarrollador registrado de Apple
-(no es una app de la App Store ni de una empresa con certificado), la
-primera vez que la abras macOS puede decir algo como *"no se puede
-verificar el desarrollador"*. Es el comportamiento normal y esperado
-para cualquier app open-source sin firmar — **no** significa que esté
-rota. Para abrirla:
+Since this app isn't signed by a registered Apple developer (it's not
+an App Store app or from a company with a certificate), the first time
+you open it macOS may say something like *"cannot verify the
+developer."* This is normal, expected behavior for any unsigned
+open-source app — it does **not** mean it's broken. To open it:
 
-1. Click derecho (o Ctrl+click) sobre la app en Applications.
-2. Elegí "Abrir".
-3. Confirmá en el diálogo que aparece.
+1. Right-click (or Ctrl+click) the app in Applications.
+2. Choose "Open."
+3. Confirm in the dialog that appears.
 
-Con eso alcanza, una sola vez. **No hace falta desactivar Gatekeeper ni
-ninguna protección de seguridad del sistema** — si algo te pide eso,
-desconfiá.
+That's all it takes, just once. **You don't need to disable Gatekeeper
+or any system security protection** — if something asks you to, be
+suspicious.
 
-### ¿Y si prefiero compilarla yo mismo en vez de bajar el .dmg?
+### What if I'd rather build it myself instead of downloading the .dmg?
 
-Requiere [Node.js](https://nodejs.org/):
+Requires [Node.js](https://nodejs.org/):
 
 ```bash
 cd ~/usage/app
@@ -88,39 +87,40 @@ npm install
 npm run dev
 ```
 
-Esto la corre directo sin empaquetar nada.
+This runs it directly without packaging anything.
 
-## ¿Qué pasa si cierro la terminal?
+## What happens if I close the terminal?
 
-Depende de cómo la tengas corriendo:
+Depends on how you're running it:
 
-- **Si la instalaste** (Paso 2, con `npm run build` y la abriste desde
-  Applications/Finder): es una app normal de macOS, totalmente
-  independiente de cualquier terminal. Cerrar terminales no la afecta
-  para nada — el ícono se queda.
-- **Si la estás corriendo con `npm run dev`** desde una terminal: queda
-  atada a esa sesión de shell. Cerrar la ventana de la terminal
-  **puede** cortarla (depende de la configuración de tu shell, no es
-  algo confiable). Para uso del día a día, conviene instalarla de
-  verdad (Paso 2) en vez de dejarla corriendo desde `npm run dev`.
+- **If you installed it** (Step 2, with `npm run build` and opened it
+  from Applications/Finder): it's a normal macOS app, fully independent
+  of any terminal. Closing terminals doesn't affect it at all — the
+  icon stays.
+- **If you're running it with `npm run dev`** from a terminal: it's
+  tied to that shell session. Closing the terminal window **can** kill
+  it (depends on your shell's configuration, not reliable). For daily
+  use, it's better to actually install it (Step 2) instead of leaving
+  it running via `npm run dev`.
 
-Para que arranque sola cada vez que prendés la Mac (opcional): Preferencias
-del Sistema → General → Elementos de Inicio de Sesión → agregá la app.
+To have it start automatically every time you turn on your Mac
+(optional): System Settings → General → Login Items → add the app.
 
-## Privacidad
+## Privacy
 
-- No se manda nada a internet. Nunca.
-- No hay cuentas, ni login, ni telemetría.
-- Todo el dato vive en un solo archivo en tu máquina:
-  `~/.claude/quota-status/current.json`. Podés abrirlo y mirarlo vos
-  mismo en cualquier momento.
+- Nothing is ever sent to the internet.
+- No accounts, no login, no telemetry.
+- All data lives in a single file on your machine:
+  `~/.claude/quota-status/current.json`. You can open and look at it
+  yourself at any time.
 
-## Desinstalar
+## Uninstall
 
-- Sacá la app de Applications (o borrá la carpeta si usaste `npm run dev`).
-- Borrá la clave `"statusLine"` de `~/.claude/settings.json` (o corré
-  `/statusline clear` dentro de Claude Code).
-- Opcional: borrá `~/.claude/quota-status/`.
+- Remove the app from Applications (or delete the folder if you used
+  `npm run dev`).
+- Remove the `"statusLine"` key from `~/.claude/settings.json` (or run
+  `/statusline clear` inside Claude Code).
+- Optional: delete `~/.claude/quota-status/`.
 
-Nada de esto deja rastros en otro lado — todo el estado vive en esos
-dos lugares.
+None of this leaves traces anywhere else — all state lives in those two
+places.

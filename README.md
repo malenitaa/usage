@@ -1,80 +1,79 @@
 # usage
 
-[![Descargar última versión](https://img.shields.io/github/v/release/malenitaa/usage?label=descargar&color=6b46c1)](https://github.com/malenitaa/usage/releases/latest)
+[![Download latest release](https://img.shields.io/github/v/release/malenitaa/usage?label=download&color=6b46c1)](https://github.com/malenitaa/usage/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](#)
 
-Ícono píxel en la barra de menú de macOS que muestra cuánto **cupo de
-Claude Code** llevás gastado — el dato oficial de Anthropic para las
-ventanas de 5 horas y 7 días — con colores semáforo pastel. Un **monitor
-de uso/rate limit** para quienes usan Claude Code con cuenta Pro o Max.
+Pixel icon in the macOS menu bar showing how much **Claude Code quota**
+you've used — the official Anthropic figure for the 5-hour and 7-day
+windows — with pastel traffic-light colors. A **usage/rate-limit
+monitor** for anyone using Claude Code with a Pro or Max account.
 
-- 🟢 verde: tranqui (0–50%)
-- 🟡 amarillo: mitad de camino (50–80%)
-- 🔴 rojo: te estás quedando sin cupo (80–100%)
+- 🟢 green: chill (0–50%)
+- 🟡 yellow: halfway there (50–80%)
+- 🔴 red: you're running out of quota (80–100%)
 
-Click en el ícono y ves el detalle: porcentaje exacto de cada ventana,
-cuánto falta para que se resetee, y cuándo se actualizó el dato por
-última vez.
+Click the icon to see the detail: exact percentage for each window, how
+long until it resets, and when the data was last updated.
 
-## ¿Querés instalarlo?
+## Want to install it?
 
-Andá directo a **[INSTALL.md](INSTALL.md)** — es una guía paso a paso
-pensada para cualquiera, sin necesidad de ser programador.
+Go straight to **[INSTALL.md](INSTALL.md)** — a step-by-step guide meant
+for anyone, no programming needed.
 
-Requisitos cortos: macOS, [Claude Code](https://claude.com/claude-code)
-con cuenta Pro o Max de claude.ai, `jq` y Node.js.
+Short requirements: macOS, [Claude Code](https://claude.com/claude-code)
+with a Pro or Max claude.ai account, `jq`, and Node.js.
 
-## ¿Qué muestra exactamente?
+## What exactly does it show?
 
-Las cuentas Pro/Max de Claude Code tienen dos límites de uso que corren
-en paralelo: uno de **5 horas** y otro de **7 días**. Claude Code informa
-el porcentaje usado de cada uno — este proyecto agarra ese dato oficial
-(no es una estimación calculada por afuera) y lo deja siempre visible en
-tu barra de menú.
+Claude Code Pro/Max accounts have two usage limits running in parallel:
+one for **5 hours** and one for **7 days**. Claude Code reports the used
+percentage of each — this project grabs that official figure (not an
+externally computed estimate) and keeps it always visible in your menu
+bar.
 
-## Cómo funciona (versión corta)
+## How it works (short version)
 
-Son dos piezas chicas que trabajan juntas:
+Two small pieces working together:
 
-1. **Un script de statusline** (`statusline/claude-usage-statusline.sh`,
-   menos de 120 líneas de bash): Claude Code lo ejecuta solo cada vez que
-   usás una sesión, y el script guarda el dato de cupo en un archivito
-   JSON local (`~/.claude/quota-status/current.json`).
-2. **Una app de barra de menú** (`app/`, Electron): lee ese archivito
-   cada ~18 segundos y dibuja el ícono y el popover. Nada más.
+1. **A statusline script** (`statusline/claude-usage-statusline.sh`,
+   under 120 lines of bash): Claude Code runs it automatically every
+   time you use a session, and the script saves the quota data to a
+   small local JSON file (`~/.claude/quota-status/current.json`).
+2. **A menu bar app** (`app/`, Electron): reads that file every ~18
+   seconds and draws the icon and popover. Nothing else.
 
-Están separadas a propósito: el script es el único que ve el dato real y
-solo escribe su propio archivo; la app solo lo lee. Si la app no está
-corriendo, el dato se sigue registrando igual.
+They're kept separate on purpose: the script is the only piece that
+sees the real data and can only write its own file; the app only reads
+it. If the app isn't running, the data keeps getting recorded anyway.
 
-## Privacidad y seguridad
+## Privacy and security
 
-- **Cero red.** Ninguna de las dos piezas hace llamadas a internet, nunca.
-- **Cero credenciales.** No toca tu API key, ni tu sesión, ni ningún dato
-  de tu cuenta — solo dos porcentajes y dos timestamps.
-- **Cero telemetría.** No hay cuentas, login ni tracking.
-- Todo el estado vive en un solo archivo local que podés abrir y leer
-  vos mismo: `~/.claude/quota-status/current.json`.
-- El código completo son dos archivos de bash/JavaScript cortos —
-  está pensado para que puedas leerlo entero antes de correrlo.
+- **Zero network.** Neither piece ever makes internet calls.
+- **Zero credentials.** It never touches your API key, your session, or
+  any account data — just two percentages and two timestamps.
+- **Zero telemetry.** No accounts, no login, no tracking.
+- All state lives in a single local file you can open and read
+  yourself: `~/.claude/quota-status/current.json`.
+- The entire codebase is two short bash/JavaScript files — meant to be
+  readable end to end before you run it.
 
-## Para desarrolladores
+## For developers
 
 ```bash
-# correr la app en modo desarrollo
+# run the app in dev mode
 cd app
 npm install
 npm run dev
 
-# empaquetar el .dmg (queda en app/dist/)
+# package the .dmg (ends up in app/dist/)
 npm run build
 ```
 
-El script de statusline se configura vía la clave `statusLine` de
-`~/.claude/settings.json` — el detalle está en [INSTALL.md](INSTALL.md).
+The statusline script is configured via the `statusLine` key in
+`~/.claude/settings.json` — details in [INSTALL.md](INSTALL.md).
 
-Formato del archivo de estado que escribe el script:
+Format of the state file the script writes:
 
 ```json
 {
@@ -86,18 +85,18 @@ Formato del archivo de estado que escribe el script:
 }
 ```
 
-`resets_at` y `written_at` son epoch seconds (UTC). Si no hay datos de
-`rate_limits` en el payload (cuenta que no es Pro/Max, o todavía no hubo
-respuesta en la sesión), escribe `{"available": false, ...}` con un
-mensaje explicando por qué.
+`resets_at` and `written_at` are epoch seconds (UTC). If there's no
+`rate_limits` data in the payload (a non-Pro/Max account, or no
+response yet in the session), it writes `{"available": false, ...}`
+with a message explaining why.
 
-## ¿Te sirvió?
+## Enjoyed it?
 
-Si te resultó útil y querés bancar el proyecto:
+If this was useful and you'd like to support the project:
 
 - [Cafecito](https://cafecito.app/rezamalena)
 - [Ko-fi](https://ko-fi.com/malenitaa)
 
-## Licencia
+## License
 
 [MIT](LICENSE)
