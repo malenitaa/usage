@@ -91,6 +91,13 @@ Formato del archivo de estado que escribe el script:
 respuesta en la sesión), escribe `{"available": false, ...}` con un
 mensaje explicando por qué.
 
+## ¿Te sirvió?
+
+Si te resultó útil y querés bancar el proyecto:
+
+- 🇦🇷 [Cafecito](https://cafecito.app/rezamalena) (pesos argentinos)
+- 🌎 [Ko-fi](https://ko-fi.com/malenitaa) (dólares)
+
 ## Licencia
 
 [MIT](LICENSE)
