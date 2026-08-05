@@ -1,8 +1,13 @@
 # usage
 
-Ícono píxel en la barra de menú de macOS que muestra cuánto cupo de
-**Claude Code** llevás gastado — el dato oficial de Anthropic para las
-ventanas de 5 horas y 7 días — con colores semáforo pastel.
+[![Descargar última versión](https://img.shields.io/github/v/release/malenitaa/usage?label=descargar&color=6b46c1)](https://github.com/malenitaa/usage/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](#)
+
+Ícono píxel en la barra de menú de macOS que muestra cuánto **cupo de
+Claude Code** llevás gastado — el dato oficial de Anthropic para las
+ventanas de 5 horas y 7 días — con colores semáforo pastel. Un **monitor
+de uso/rate limit** para quienes usan Claude Code con cuenta Pro o Max.
 
 - 🟢 verde: tranqui (0–50%)
 - 🟡 amarillo: mitad de camino (50–80%)

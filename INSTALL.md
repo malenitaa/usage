@@ -15,7 +15,6 @@ Requisitos:
   brew install jq
   ```
   (si no tenés Homebrew: [brew.sh](https://brew.sh/))
-- [Node.js](https://nodejs.org/) (para la parte de la app).
 
 ## Antes de instalar nada: revisá lo que vas a correr
 
@@ -56,14 +55,11 @@ dato empieza a registrarse solo. No hace falta reiniciar nada más.
 
 ## Paso 2 — la app de la barra de menú
 
-```bash
-cd ~/usage/app
-npm install
-npm run build
-```
-
-Esto te deja un instalador `.dmg` en `app/dist/`. Abrilo y arrastrá la
-app a "Applications" como cualquier otra app.
+Andá a [Releases](https://github.com/malenitaa/usage/releases) y
+descargá el `.dmg` correspondiente a tu Mac (`arm64` si es una Mac con
+chip Apple M1/M2/M3/M4, o el otro `.dmg` si es una Mac más vieja con
+procesador Intel — si no estás segura/o, probá primero el `arm64`).
+Abrilo y arrastrá "Claude Usage" a "Applications" como cualquier otra app.
 
 ### La primera vez que la abras, macOS te va a avisar algo
 
@@ -82,7 +78,9 @@ Con eso alcanza, una sola vez. **No hace falta desactivar Gatekeeper ni
 ninguna protección de seguridad del sistema** — si algo te pide eso,
 desconfiá.
 
-### ¿Y si prefiero no instalarla y probarla nomás?
+### ¿Y si prefiero compilarla yo mismo en vez de bajar el .dmg?
+
+Requiere [Node.js](https://nodejs.org/):
 
 ```bash
 cd ~/usage/app
