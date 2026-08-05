@@ -3,6 +3,7 @@ const path = require('path');
 
 const { buildTrayIcon } = require('./icon');
 const { readQuotaStatus, worstPct } = require('./quota-reader');
+const { readConfig } = require('./config');
 
 const REFRESH_MS = 18000; // 15-20s per spec
 
@@ -17,8 +18,25 @@ function formatPct(pct) {
 async function refreshTray() {
   const status = await readQuotaStatus();
   const pct = worstPct(status);
-  const icon = buildTrayIcon(pct, !!status.available);
+  const { trayDisplay } = readConfig();
+  const showBar = trayDisplay.includes('bar');
+  const show5h = trayDisplay.includes('5h');
+  const show7d = trayDisplay.includes('7d');
+
+  // The color-coded sparkle only draws when 'bar' is on; any other
+  // combination (including none) falls back to a plain neutral dot so
+  // there's always something in the menu bar to click.
+  const icon = buildTrayIcon(pct, !!status.available, showBar);
   tray.setImage(icon);
+
+  if (status.available && (show5h || show7d)) {
+    const parts = [];
+    if (show5h) parts.push(`5h ${formatPct(status.five_hour?.pct)}`);
+    if (show7d) parts.push(`7d ${formatPct(status.seven_day?.pct)}`);
+    tray.setTitle(parts.join(' · '));
+  } else {
+    tray.setTitle('');
+  }
 
   if (status.available) {
     tray.setToolTip(`Claude usage — 5h: ${formatPct(status.five_hour?.pct)}  7d: ${formatPct(status.seven_day?.pct)}`);
@@ -47,6 +65,10 @@ function createPopover() {
       preload: path.join(__dirname, 'preload.js')
     }
   });
+
+  // Follow the user's current Space instead of pulling them over to
+  // whichever Space the app happened to launch on.
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   win.on('blur', () => win.hide());
@@ -80,6 +102,7 @@ function togglePopover() {
     popover.hide();
     return;
   }
+  popover.webContents.send('force-refresh');
   positionPopover();
   popover.show();
   popover.focus();

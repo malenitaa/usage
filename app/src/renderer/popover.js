@@ -86,4 +86,5 @@ async function refresh() {
 document.addEventListener('DOMContentLoaded', () => {
   refresh();
   setInterval(refresh, REFRESH_MS);
+  window.quota.onForceRefresh(refresh);
 });

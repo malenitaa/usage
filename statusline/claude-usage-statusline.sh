@@ -38,7 +38,8 @@ input="$(cat)"
 # which can lag behind another session's fresher reading. To avoid a
 # lagging session silently overwriting a higher, more current percentage
 # with a stale lower one, we compare against whatever is already on disk
-# and flag (not discard) suspicious drops.
+# and keep the existing reading — instead of the new, suspiciously lower
+# one — whenever that pattern shows up.
 old_state="{}"
 if [[ -f "$STATE_FILE" ]]; then
   old_candidate="$(cat "$STATE_FILE" 2>/dev/null || true)"
@@ -64,22 +65,19 @@ state_json="$(
         elif ($written_at < $old_resets_at) and (($old_pct - new_pct) >= 20) then true
         else false
         end;
+    # Keep the previous window untouched on a suspicious drop, so a
+    # lagging session can never drag the displayed percentage backwards;
+    # otherwise take the freshly-read window.
+    def resolve_window(old_window; new_window):
+      if flag_drop(old_window; new_window.pct) then old_window else new_window end;
     ($old_state.five_hour // null) as $old_fh
     | ($old_state.seven_day // null) as $old_sd
     | (.rate_limits.five_hour.used_percentage // null | round1dp) as $fh_pct
     | (.rate_limits.seven_day.used_percentage // null | round1dp) as $sd_pct
     | {
       model: (.model.display_name // .model.id // null),
-      five_hour: {
-        pct: $fh_pct,
-        resets_at: (.rate_limits.five_hour.resets_at // null),
-        stale_suspect: flag_drop($old_fh; $fh_pct)
-      },
-      seven_day: {
-        pct: $sd_pct,
-        resets_at: (.rate_limits.seven_day.resets_at // null),
-        stale_suspect: flag_drop($old_sd; $sd_pct)
-      },
+      five_hour: resolve_window($old_fh; {pct: $fh_pct, resets_at: (.rate_limits.five_hour.resets_at // null)}),
+      seven_day: resolve_window($old_sd; {pct: $sd_pct, resets_at: (.rate_limits.seven_day.resets_at // null)}),
       written_at: $written_at
     }
     | . + {available: ((.five_hour.pct != null) or (.seven_day.pct != null))}

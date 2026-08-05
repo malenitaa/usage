@@ -47,6 +47,42 @@ They're kept separate on purpose: the script is the only piece that
 sees the real data and can only write its own file; the app only reads
 it. If the app isn't running, the data keeps getting recorded anyway.
 
+## Configuring the menu bar display
+
+The menu bar shows up to three independent pieces, and you choose which
+ones appear: the color-coded icon (`bar`), the 5-hour percentage (`5h`),
+and the 7-day percentage (`7d`). Any combination works — all three, just
+one, two of them, or none.
+
+Create `~/.claude/usage-app-config.json`:
+
+```json
+{ "trayDisplay": ["bar", "5h", "7d"] }
+```
+
+`trayDisplay` is a list containing any of `"bar"`, `"5h"`, `"7d"` — add
+or remove entries to change what's shown:
+
+| You want to see              | `trayDisplay`         |
+| ----------------------------- | ---------------------- |
+| Everything (default)          | `["bar", "5h", "7d"]`   |
+| Just the color-coded icon     | `["bar"]`               |
+| Just the two percentages      | `["5h", "7d"]`          |
+| Only the 5-hour percentage    | `["5h"]`                |
+| Only the 7-day percentage     | `["7d"]`                |
+| Nothing (a plain dot, still clickable) | `[]`           |
+
+The order you list them in doesn't matter — they're always shown in the
+order above. Unknown entries are ignored rather than causing an error,
+so a typo just falls back to whatever valid entries are left (or to the
+default if none are). No file at all also falls back to the default.
+
+macOS's menu bar can't draw an actual progress bar next to the icon —
+`"bar"`'s color/fill is the closest thing to that. When `5h` and/or `7d`
+are on, the icon shrinks to a plain dot if `bar` is off, so the numbers
+aren't crowded by a color that isn't shown. Changes take effect on the
+next refresh (~18s) — no restart needed.
+
 ## Privacy and security
 
 - **Zero network.** Neither piece ever makes internet calls.

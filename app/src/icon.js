@@ -17,20 +17,33 @@ const SHAPE = [
   '....#....',
   '.........'
 ];
-const GRID_H = SHAPE.length;
-const GRID_W = SHAPE[0].length;
 
-function isOn(x, y) {
-  if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return false;
-  return SHAPE[y][x] === '#';
+// Small filled dot, used instead of SHAPE when the tray title text is
+// already carrying the percentages (mode 'numbers') so the icon doesn't
+// compete with the text for attention.
+const DOT_SHAPE = [
+  '.........',
+  '.........',
+  '...###...',
+  '..#####..',
+  '..#####..',
+  '..#####..',
+  '...###...',
+  '.........',
+  '.........'
+];
+
+function shapeAt(shape, x, y) {
+  if (x < 0 || y < 0 || y >= shape.length || x >= shape[0].length) return false;
+  return shape[y][x] === '#';
 }
 
-function isOutline(x, y) {
-  if (isOn(x, y)) return false;
-  return isOn(x - 1, y) || isOn(x + 1, y) || isOn(x, y - 1) || isOn(x, y + 1);
-}
+function renderBuffer(pxSize, pctWorst, available, shape) {
+  const GRID_H = shape.length;
+  const GRID_W = shape[0].length;
+  const isOn = (x, y) => shapeAt(shape, x, y);
+  const isOutline = (x, y) => !isOn(x, y) && (isOn(x - 1, y) || isOn(x + 1, y) || isOn(x, y - 1) || isOn(x, y + 1));
 
-function renderBuffer(pxSize, pctWorst, available) {
   const w = GRID_W * pxSize;
   const h = GRID_H * pxSize;
   const buf = Buffer.alloc(w * h * 4); // starts fully transparent (all zero)
@@ -65,9 +78,12 @@ function renderBuffer(pxSize, pctWorst, available) {
 }
 
 // pctWorst: 0-100 (worst of five_hour/seven_day), or null when unavailable.
-function buildTrayIcon(pctWorst, available) {
-  const at1x = renderBuffer(2, pctWorst ?? 0, available);
-  const at2x = renderBuffer(4, pctWorst ?? 0, available);
+// useGlyph: false swaps the sparkle for a plain dot (mode 'numbers', where
+// the tray title text already carries the percentages).
+function buildTrayIcon(pctWorst, available, useGlyph = true) {
+  const shape = useGlyph ? SHAPE : DOT_SHAPE;
+  const at1x = renderBuffer(2, pctWorst ?? 0, available, shape);
+  const at2x = renderBuffer(4, pctWorst ?? 0, available, shape);
 
   const img = nativeImage.createFromBuffer(at1x.buffer, { width: at1x.width, height: at1x.height });
   img.addRepresentation({
