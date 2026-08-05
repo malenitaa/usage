@@ -96,8 +96,11 @@ two works. Add `statuslineDisplay` to `~/.claude/usage-app-config.json`:
 `statuslineDisplay` accepts one of:
 
 - `"numbers"` (default) — `Uso de Claude — 5h: 44%  7d: 38%`
-- `"bar"` — a 10-segment ASCII bar per window instead of the exact
-  number: `Uso de Claude — 5h [####------]  7d [####------]`
+- `"bar"` — a 10-segment bar per window instead of the exact number,
+  using Unicode block glyphs (█ filled / ░ empty): `Uso de Claude — 5h
+  [████░░░░░░]  7d [████░░░░░░]`. Needs a terminal font that renders
+  those glyphs — if you see boxes or `?` instead, your font doesn't, and
+  plain `"numbers"` is the safer choice.
 - `"none"` — nothing is printed on a successful read. Errors (e.g. `jq`
   missing, no quota data yet) are always shown regardless of this
   setting, since those aren't a display preference — they mean

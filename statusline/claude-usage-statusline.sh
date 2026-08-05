@@ -121,12 +121,13 @@ if [[ "$(printf '%s' "$state_json" | jq -r '.available')" == "true" ]]; then
       : # intentionally silent
       ;;
     bar)
-      # 10-segment ASCII-only bar (no Unicode block glyphs) so it renders
-      # identically regardless of terminal font/encoding.
+      # 10-segment bar using Unicode block glyphs (█ filled / ░ empty).
+      # Needs a terminal font with those glyphs — if yours renders them
+      # as boxes or "?", switch statuslineDisplay back to "numbers".
       bars="$(
         printf '%s' "$state_json" | jq -r '
           def bar: (. // 0) as $p | ([$p / 10 | round, 10] | min) as $f
-            | ([range(0; 10) as $i | if $i < $f then "#" else "-" end] | join(""));
+            | ([range(0; 10) as $i | if $i < $f then "█" else "░" end] | join(""));
           "\(.five_hour.pct | bar)\t\(.seven_day.pct | bar)"
         '
       )"
