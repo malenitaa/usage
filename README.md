@@ -14,7 +14,9 @@ monitor** for anyone using Claude Code with a Pro or Max account.
 - 🔴 red: you're running out of quota (80–100%)
 
 Click the icon to see the detail: exact percentage for each window, how
-long until it resets, and when the data was last updated.
+long until it resets, and when the data was last updated. All the text
+follows your Mac's system language automatically — currently available in
+English and Spanish, with any other language falling back to English.
 
 ## Want to install it?
 
@@ -95,9 +97,9 @@ two works. Add `statuslineDisplay` to `~/.claude/usage-app-config.json`:
 
 `statuslineDisplay` accepts one of:
 
-- `"numbers"` (default) — `Uso de Claude — 5h: 44%  7d: 38%`
+- `"numbers"` (default) — `Claude usage — 5h: 44%  7d: 38%`
 - `"bar"` — a 10-segment bar per window instead of the exact number,
-  using Unicode block glyphs (█ filled / ░ empty): `Uso de Claude — 5h
+  using Unicode block glyphs (█ filled / ░ empty): `Claude usage — 5h
   [████░░░░░░]  7d [████░░░░░░]`. Needs a terminal font that renders
   those glyphs — if you see boxes or `?` instead, your font doesn't, and
   plain `"numbers"` is the safer choice.
@@ -109,6 +111,10 @@ two works. Add `statuslineDisplay` to `~/.claude/usage-app-config.json`:
 Unlike the menu bar's three independent toggles, `bar` and `numbers`
 here are mutually exclusive — pick one, a single terminal line doesn't
 have room for both. An invalid value falls back to `"numbers"`.
+
+Like the rest of the app, this line follows your system language (English
+shown above; e.g. `Uso de Claude — 5h: 44%  7d: 38%` on a Mac set to
+Spanish).
 
 Takes effect on the next time Claude Code refreshes the statusline (per
 its own `refreshInterval`) — no restart needed.
@@ -163,16 +169,20 @@ Format of the state file the script writes:
 {
   "available": true,
   "model": "Opus",
-  "five_hour": { "pct": 23.5, "resets_at": 1738425600 },
-  "seven_day": { "pct": 41.2, "resets_at": 1738857600 },
+  "five_hour": { "pct": 23.5, "resets_at": 1738425600, "captured_at": 1738400000, "stale_suspect": false },
+  "seven_day": { "pct": 41.2, "resets_at": 1738857600, "captured_at": 1738400000, "stale_suspect": false },
   "written_at": 1738400000
 }
 ```
 
-`resets_at` and `written_at` are epoch seconds (UTC). If there's no
-`rate_limits` data in the payload (a non-Pro/Max account, or no
-response yet in the session), it writes `{"available": false, ...}`
-with a message explaining why.
+`resets_at`, `captured_at`, and `written_at` are epoch seconds (UTC).
+`stale_suspect` is `true` when a lower reading from another Claude Code
+session was briefly held back instead of overwriting a fresher, higher
+one — the menu bar popover shows a small note when that happens. Error
+messages in the state file (and the terminal statusline) follow your
+system language too. If there's no `rate_limits` data in the payload (a
+non-Pro/Max account, or no response yet in the session), it writes
+`{"available": false, ...}` with a message explaining why.
 
 ## Enjoyed it?
 
