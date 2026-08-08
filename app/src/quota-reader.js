@@ -1,12 +1,14 @@
 const fs = require('fs/promises');
 const path = require('path');
 const os = require('os');
+const { getStrings } = require('./i18n');
 
 const STATE_FILE = path.join(os.homedir(), '.claude', 'quota-status', 'current.json');
 
 // Read-only. This is the ONLY place in the app that touches the filesystem;
 // it never writes to STATE_FILE — that file is owned by the statusline script.
 async function readQuotaStatus() {
+  const t = getStrings();
   let raw;
   try {
     raw = await fs.readFile(STATE_FILE, 'utf8');
@@ -14,7 +16,7 @@ async function readQuotaStatus() {
     if (err.code === 'ENOENT') {
       return {
         available: false,
-        message: 'No hay datos todavía. Corré Claude Code al menos una vez con el statusline configurado.',
+        message: t.noStateYet,
         written_at: null
       };
     }
@@ -22,14 +24,14 @@ async function readQuotaStatus() {
     // (e.g. EACCES) it echoes the full filesystem path, which can include
     // the local username. Keep the user-facing message generic; anyone
     // debugging for real has the source right here.
-    return { available: false, message: 'No se pudo leer el archivo de estado.', written_at: null };
+    return { available: false, message: t.readError, written_at: null };
   }
 
   try {
     const parsed = JSON.parse(raw);
     return parsed;
   } catch (err) {
-    return { available: false, message: 'El archivo de estado tiene un formato inválido.', written_at: null };
+    return { available: false, message: t.invalidState, written_at: null };
   }
 }
 

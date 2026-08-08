@@ -4,6 +4,7 @@ const path = require('path');
 const { buildTrayIcon } = require('./icon');
 const { readQuotaStatus, worstPct } = require('./quota-reader');
 const { readConfig } = require('./config');
+const { getStrings } = require('./i18n');
 
 const REFRESH_MS = 18000; // 15-20s per spec
 
@@ -22,6 +23,7 @@ async function refreshTray() {
   const showBar = trayDisplay.includes('bar');
   const show5h = trayDisplay.includes('5h');
   const show7d = trayDisplay.includes('7d');
+  const t = getStrings();
 
   // The color-coded sparkle only draws when 'bar' is on; any other
   // combination (including none) falls back to a plain neutral dot so
@@ -39,9 +41,12 @@ async function refreshTray() {
   }
 
   if (status.available) {
-    tray.setToolTip(`Claude usage — 5h: ${formatPct(status.five_hour?.pct)}  7d: ${formatPct(status.seven_day?.pct)}`);
+    const tooltip = t.trayTooltipTemplate
+      .replace('{fh}', formatPct(status.five_hour?.pct))
+      .replace('{sd}', formatPct(status.seven_day?.pct));
+    tray.setToolTip(tooltip);
   } else {
-    tray.setToolTip(status.message || 'Claude usage: sin datos');
+    tray.setToolTip(status.message || t.trayNoData);
   }
   return status;
 }
@@ -120,6 +125,7 @@ app.whenReady().then(() => {
   tray.on('click', togglePopover);
 
   ipcMain.handle('quota:read', () => readQuotaStatus());
+  ipcMain.handle('i18n:strings', () => getStrings());
 
   refreshTray();
   refreshTimer = setInterval(refreshTray, REFRESH_MS);

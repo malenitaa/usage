@@ -6,3 +6,7 @@ contextBridge.exposeInMainWorld('quota', {
   read: () => ipcRenderer.invoke('quota:read'),
   onForceRefresh: (callback) => ipcRenderer.on('force-refresh', callback)
 });
+
+contextBridge.exposeInMainWorld('i18n', {
+  strings: () => ipcRenderer.invoke('i18n:strings')
+});

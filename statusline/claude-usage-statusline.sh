@@ -23,11 +23,53 @@ mkdir -p "$STATE_DIR"
 
 now_epoch="$(date +%s)"
 
+# System language, not the shell's own locale env vars: many Mac users run
+# a terminal with $LANG unset/C while their actual system language (what
+# the README's audience actually reads) is something else entirely.
+# `defaults read -g AppleLocale` is the authoritative source on macOS;
+# $LC_ALL/$LC_MESSAGES/$LANG is the portable fallback everywhere else.
+# Only Spanish gets its own set of strings -- every other language falls
+# back to English rather than defaulting to Spanish for everyone, which is
+# what this script did unconditionally before.
+sys_locale=""
+if command -v defaults >/dev/null 2>&1; then
+  sys_locale="$(defaults read -g AppleLocale 2>/dev/null || true)"
+fi
+if [[ -z "$sys_locale" ]]; then
+  sys_locale="${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}"
+fi
+case "$sys_locale" in
+  es*) lang_code="es" ;;
+  *) lang_code="en" ;;
+esac
+
+if [[ "$lang_code" == "es" ]]; then
+  msg_no_jq="No se encontró jq en el PATH — instalá jq para habilitar el seguimiento de cupo."
+  msg_no_jq_line="Uso de Claude: jq no encontrado"
+  msg_no_rate_limits="No hay datos de rate_limits en el payload — requiere una cuenta Pro/Max de claude.ai y al menos una respuesta en esta sesión (Claude Code 2.1+)."
+  msg_parse_error="No se pudo parsear el payload JSON del statusline."
+  msg_line_bar_template="Uso de Claude — 5h [%s]  7d [%s]\n"
+  msg_line_numbers_template="Uso de Claude — 5h: %s%%  7d: %s%%\n"
+  msg_no_data_yet="Uso de Claude: sin datos todavía\n"
+else
+  msg_no_jq="jq was not found in PATH — install jq to enable quota tracking."
+  msg_no_jq_line="Claude usage: jq not found"
+  msg_no_rate_limits="No rate_limits data in the payload — requires a Pro/Max claude.ai account and at least one response in this session (Claude Code 2.1+)."
+  msg_parse_error="Could not parse the statusline JSON payload."
+  msg_line_bar_template="Claude usage — 5h [%s]  7d [%s]\n"
+  msg_line_numbers_template="Claude usage — 5h: %s%%  7d: %s%%\n"
+  msg_no_data_yet="Claude usage: no data yet\n"
+fi
+
 if ! command -v jq >/dev/null 2>&1; then
+  # jq isn't available yet in this branch (that's the point of the check),
+  # so this has to be a plain printf, not a jq-built JSON string. Safe
+  # because msg_no_jq is one of our own fixed strings above, never
+  # attacker/user-controlled input.
   tmp_file="$(mktemp "$STATE_DIR/.current.json.XXXXXX")"
-  printf '{"available": false, "message": "No se encontró jq en el PATH — instalá jq para habilitar el seguimiento de cupo.", "written_at": %s}\n' "$now_epoch" > "$tmp_file"
+  printf '{"available": false, "message": "%s", "written_at": %s}\n' "$msg_no_jq" "$now_epoch" > "$tmp_file"
   mv -f "$tmp_file" "$STATE_FILE"
-  echo "Uso de Claude: jq no encontrado"
+  echo "$msg_no_jq_line"
   exit 0
 fi
 
@@ -65,7 +107,7 @@ fi
 # data is parsed. Everything downstream reads from jq's own output,
 # never from $input again.
 state_json="$(
-  printf '%s' "$input" | jq -c --argjson written_at "$now_epoch" --argjson old_state "$old_state" --argjson protect_max_seconds 300 '
+  printf '%s' "$input" | jq -c --argjson written_at "$now_epoch" --argjson old_state "$old_state" --argjson protect_max_seconds 300 --arg no_rate_limits_msg "$msg_no_rate_limits" '
     def round1dp: if . == null then null else ((. * 10 | round) / 10) end;
     # A window read is a suspicious drop if the previous reading is still
     # inside its own reset window (has not actually rolled over yet) but
@@ -109,13 +151,13 @@ state_json="$(
     }
     | . + {available: ((.five_hour.pct != null) or (.seven_day.pct != null))}
     | if .available then . else
-        {available: false, model: .model, message: "No hay datos de rate_limits en el payload — requiere una cuenta Pro/Max de claude.ai y al menos una respuesta en esta sesión (Claude Code 2.1+).", written_at: $written_at}
+        {available: false, model: .model, message: $no_rate_limits_msg, written_at: $written_at}
       end
   ' 2>/dev/null || true
 )"
 
 if [[ -z "$state_json" ]]; then
-  state_json="$(jq -n --argjson written_at "$now_epoch" '{available: false, message: "No se pudo parsear el payload JSON del statusline.", written_at: $written_at}')"
+  state_json="$(jq -n --argjson written_at "$now_epoch" --arg message "$msg_parse_error" '{available: false, message: $message, written_at: $written_at}')"
 fi
 
 tmp_file="$(mktemp "$STATE_DIR/.current.json.XXXXXX")"
@@ -147,14 +189,14 @@ if [[ "$(printf '%s' "$state_json" | jq -r '.available')" == "true" ]]; then
       )"
       fh_bar="${bars%%$'\t'*}"
       sd_bar="${bars#*$'\t'}"
-      printf 'Uso de Claude — 5h [%s]  7d [%s]\n' "$fh_bar" "$sd_bar"
+      printf "$msg_line_bar_template" "$fh_bar" "$sd_bar"
       ;;
     numbers | *)
       fh="$(printf '%s' "$state_json" | jq -r 'if .five_hour.pct != null then (.five_hour.pct | tostring) else "?" end')"
       sd="$(printf '%s' "$state_json" | jq -r 'if .seven_day.pct != null then (.seven_day.pct | tostring) else "?" end')"
-      printf 'Uso de Claude — 5h: %s%%  7d: %s%%\n' "$fh" "$sd"
+      printf "$msg_line_numbers_template" "$fh" "$sd"
       ;;
   esac
 else
-  printf 'Uso de Claude: sin datos todavía\n'
+  printf "$msg_no_data_yet"
 fi
