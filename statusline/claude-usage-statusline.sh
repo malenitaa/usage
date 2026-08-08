@@ -65,24 +65,38 @@ fi
 # data is parsed. Everything downstream reads from jq's own output,
 # never from $input again.
 state_json="$(
-  printf '%s' "$input" | jq -c --argjson written_at "$now_epoch" --argjson old_state "$old_state" '
+  printf '%s' "$input" | jq -c --argjson written_at "$now_epoch" --argjson old_state "$old_state" --argjson protect_max_seconds 300 '
     def round1dp: if . == null then null else ((. * 10 | round) / 10) end;
     # A window read is a suspicious drop if the previous reading is still
     # inside its own reset window (has not actually rolled over yet) but
     # the new pct is much lower - that pattern means another, staler
     # session just wrote its older number, not that usage went down.
+    # The protection only holds for protect_max_seconds after the kept
+    # value was originally captured: past that, an old "protected" value
+    # is more likely to just be plain stale than a live session is to be
+    # wrong, so the fresh read wins regardless (otherwise a single bad
+    # reading could get stuck on screen for hours, until the window
+    # actually resets).
     def flag_drop(old_window; new_pct):
       (old_window.pct // null) as $old_pct
       | (old_window.resets_at // null) as $old_resets_at
-      | if $old_pct == null or new_pct == null or $old_resets_at == null then false
-        elif ($written_at < $old_resets_at) and (($old_pct - new_pct) >= 20) then true
+      | (old_window.captured_at // null) as $old_captured_at
+      | if $old_pct == null or new_pct == null or $old_resets_at == null or $old_captured_at == null then false
+        elif ($written_at < $old_resets_at)
+             and (($old_pct - new_pct) >= 20)
+             and (($written_at - $old_captured_at) < $protect_max_seconds) then true
         else false
         end;
-    # Keep the previous window untouched on a suspicious drop, so a
-    # lagging session can never drag the displayed percentage backwards;
-    # otherwise take the freshly-read window.
+    # Keep the previous window untouched (but flagged as stale_suspect) on
+    # a suspicious drop, so a lagging session cannot immediately drag the
+    # displayed percentage backwards; otherwise take the freshly-read
+    # window and stamp when it was captured.
     def resolve_window(old_window; new_window):
-      if flag_drop(old_window; new_window.pct) then old_window else new_window end;
+      if flag_drop(old_window; new_window.pct) then
+        old_window + {stale_suspect: true}
+      else
+        new_window + {captured_at: $written_at, stale_suspect: false}
+      end;
     ($old_state.five_hour // null) as $old_fh
     | ($old_state.seven_day // null) as $old_sd
     | (.rate_limits.five_hour.used_percentage // null | round1dp) as $fh_pct

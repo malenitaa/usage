@@ -67,8 +67,12 @@ function createPopover() {
   });
 
   // Follow the user's current Space instead of pulling them over to
-  // whichever Space the app happened to launch on.
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  // whichever Space the app happened to launch on. skipTransformProcessType
+  // avoids Electron toggling the app between accessory/foreground to apply
+  // this, which is what was causing macOS to switch Spaces on every click
+  // (this window is transparent and the app is already a UIElement via
+  // app.dock.hide(), exactly the case the option exists for).
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
 
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   win.on('blur', () => win.hide());
