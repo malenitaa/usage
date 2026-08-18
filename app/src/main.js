@@ -13,8 +13,12 @@ let tray = null;
 let popover = null;
 let refreshTimer = null;
 
+// The raw figure can exceed 100: a request admitted just under the cap runs to
+// completion and its full cost lands on the window afterwards. Anthropic's own
+// usage screen caps what it shows at 100%, so cap it here too and stay
+// consistent with claude.ai. The state file still stores the raw value.
 function formatPct(pct) {
-  return pct == null ? '?' : `${pct}%`;
+  return pct == null ? '?' : `${Math.min(pct, 100)}%`;
 }
 
 async function refreshTray() {

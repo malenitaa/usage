@@ -49,7 +49,9 @@ function formatUpdated(writtenAtEpochSeconds) {
 
 function renderMeter(sectionId, pct, resetsAt, staleSuspect) {
   const section = document.getElementById(sectionId);
-  section.querySelector('[data-field="pct"]').textContent = pct == null ? '--%' : `${pct}%`;
+  // Capped at 100 to match Anthropic's own usage screen — see formatPct() in
+  // main.js for why the raw number can go above it.
+  section.querySelector('[data-field="pct"]').textContent = pct == null ? '--%' : `${Math.min(pct, 100)}%`;
   renderBar(section.querySelector('[data-field="bar"]'), pct);
   section.querySelector('[data-field="reset"]').textContent = formatCountdown(resetsAt);
   section.querySelector('[data-field="stale"]').textContent = staleSuspect ? T.staleSuspect : '';

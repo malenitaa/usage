@@ -193,8 +193,12 @@ if [[ "$(printf '%s' "$state_json" | jq -r '.available')" == "true" ]]; then
       printf "$msg_line_bar_template" "$fh_bar" "$sd_bar"
       ;;
     numbers | *)
-      fh="$(printf '%s' "$state_json" | jq -r 'if .five_hour.pct != null then (.five_hour.pct | tostring) else "?" end')"
-      sd="$(printf '%s' "$state_json" | jq -r 'if .seven_day.pct != null then (.seven_day.pct | tostring) else "?" end')"
+      # Capped at 100 for display only (the state file keeps the raw figure):
+      # the real number can exceed 100 when a request admitted just under the
+      # cap finishes and its full cost lands on the window, and Anthropic own
+      # usage screen caps what it shows the same way.
+      fh="$(printf '%s' "$state_json" | jq -r 'if .five_hour.pct != null then ([.five_hour.pct, 100] | min | tostring) else "?" end')"
+      sd="$(printf '%s' "$state_json" | jq -r 'if .seven_day.pct != null then ([.seven_day.pct, 100] | min | tostring) else "?" end')"
       printf "$msg_line_numbers_template" "$fh" "$sd"
       ;;
   esac
