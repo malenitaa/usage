@@ -32,6 +32,44 @@ function renderBar(fill, pct) {
   fill.style.backgroundColor = tier ? COLORS[tier] : COLORS.none;
 }
 
+// Compact token counts: 245897 -> "245.9K", 1000000 -> "1M". Trailing ".0" is
+// dropped so the common round numbers (1M context) read as they are written.
+function formatTokens(n) {
+  if (n == null) return null;
+  const units = [[1e9, 'G'], [1e6, 'M'], [1e3, 'K']];
+  for (const [size, suffix] of units) {
+    if (Math.abs(n) >= size) {
+      const v = n / size;
+      return `${v.toFixed(1).replace(/\.0$/, '')}${suffix}`;
+    }
+  }
+  return String(n);
+}
+
+// Per-session figures, unlike everything above them, which is per account. The
+// state file records whichever session refreshed last, so the name is shown
+// alongside: without it these numbers would look like they describe the
+// session you happen to be looking at, which is only usually true.
+function renderSession(session) {
+  const tokensEl = document.querySelector('[data-field="tokens"]');
+  const contextEl = document.querySelector('[data-field="context"]');
+  const nameEl = document.querySelector('[data-field="session-name"]');
+  if (!tokensEl || !contextEl || !nameEl) return;
+
+  const s = session || {};
+  const totalTokens = (s.tokens_in ?? 0) + (s.tokens_out ?? 0);
+  tokensEl.textContent =
+    s.tokens_in == null && s.tokens_out == null ? T.sessionUnknown : formatTokens(totalTokens);
+
+  contextEl.textContent = s.context_pct == null
+    ? T.sessionUnknown
+    : T.sessionContextTemplate
+        .replace('{pct}', s.context_pct)
+        .replace('{size}', formatTokens(s.context_size) ?? '?');
+
+  nameEl.textContent = s.name ? `${T.sessionNamePrefix}${s.name}` : '';
+}
+
 function formatCountdown(resetsAtEpochSeconds) {
   if (resetsAtEpochSeconds == null) return T.resetUnknown;
   const diffSeconds = resetsAtEpochSeconds - Math.floor(Date.now() / 1000);
@@ -64,6 +102,8 @@ let AVAILABLE_TEMPLATE = null;
 
 function localizeStaticText() {
   document.querySelector('.panel-title').textContent = T.panelTitle;
+  document.querySelector('[data-field="tokens-label"]').textContent = T.sessionTokens;
+  document.querySelector('[data-field="context-label"]').textContent = T.sessionContext;
   document.querySelector('.disclaimer').textContent = T.disclaimer;
   document.querySelectorAll('[data-field="reset"]').forEach((el) => { el.textContent = T.resetUnknown; });
   document.querySelector('[data-field="updated"]').textContent = T.updatedUnknown;
@@ -104,11 +144,18 @@ async function refresh() {
   renderMeter('seven-day', status.seven_day?.pct ?? null, status.seven_day?.resets_at ?? null, status.seven_day?.stale_suspect ?? false);
   document.querySelector('[data-field="updated"]').textContent = formatUpdated(status.written_at);
   document.querySelector('[data-field="model"]').textContent = status.model ? `${T.modelPrefix}${status.model}` : '';
+  renderSession(status.session);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
   [T, COLORS] = await Promise.all([window.i18n.strings(), window.palette.colors()]);
   localizeStaticText();
+  // Captured BEFORE the first refresh() on purpose, and only ever once. The
+  // panel by then holds nothing but our own static markup, so the string that
+  // ensureAvailableTemplate() later re-inserts as innerHTML can never contain
+  // the session name, the model name or an error message — all of which come
+  // from outside this app and are only ever written with textContent. Move
+  // this line below refresh() and that stops being true.
   AVAILABLE_TEMPLATE = document.querySelector('.panel').innerHTML;
 
   refresh();

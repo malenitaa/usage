@@ -17,10 +17,11 @@
 
 html, body {
   width: 248px;
-  /* Sized for the tallest the panel ever gets (both stale-data warnings
-     showing) plus the margin its CSS shadow needs. Anything outside the panel
-     is transparent, and the window itself casts no shadow of its own. */
-  height: 278px;
+  /* Sized for the tallest the panel ever gets — both stale-data warnings
+     showing AND the session disclosure open — plus the margin its CSS shadow
+     needs. Anything outside the panel is transparent, and the window itself
+     casts no shadow of its own, so the slack is invisible while collapsed. */
+  height: 332px;
   background: transparent;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -129,11 +130,83 @@ html, body {
   line-height: 1.45;
 }
 
-.model-row {
+/* The session disclosure. Everything above it is per ACCOUNT; everything
+   inside it is per SESSION, which is why the session name sits next to the
+   numbers — the menu bar app has no session of its own and shows whichever
+   one refreshed last. */
+.session {
+  margin-top: 6px;
+}
+
+.session-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  cursor: default;
+  list-style: none;
+}
+
+.session-summary::-webkit-details-marker {
+  display: none; /* drawing our own caret below */
+}
+
+.session-model {
   font-size: 8px;
   color: color-mix(in srgb, GrayText 60%, transparent);
-  margin-top: 6px;
+}
+
+.session-caret {
+  width: 0;
+  height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid color-mix(in srgb, GrayText 60%, transparent);
+  transform: rotate(-90deg); /* points right while closed */
+  transition: transform 0.15s ease;
+}
+
+.session[open] .session-caret {
+  transform: rotate(0deg);
+}
+
+.session-body {
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid color-mix(in srgb, CanvasText 8%, transparent);
+}
+
+.session-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 9.5px;
+  margin-bottom: 3px;
+}
+
+.session-key {
+  color: GrayText;
+}
+
+.session-val {
+  color: CanvasText;
+  font-variant-numeric: tabular-nums;
+}
+
+.session-name {
+  font-size: 8px;
+  color: color-mix(in srgb, GrayText 60%, transparent);
   text-align: right;
+  margin-top: 4px;
+  /* Session names are free text the user picked and can be arbitrarily long;
+     clip rather than let one stretch the panel out of the window. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-name:empty {
+  display: none;
 }
 
 .unavailable {

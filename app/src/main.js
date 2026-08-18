@@ -59,7 +59,7 @@ async function refreshTray() {
 function createPopover() {
   const win = new BrowserWindow({
     width: 248,
-    height: 278,
+    height: 332,
     show: false,
     frame: false,
     resizable: false,

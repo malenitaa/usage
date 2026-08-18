@@ -34,7 +34,23 @@
 
     <div class="updated-row" data-field="updated">última actualización: --</div>
     <div class="disclaimer">dato oficial de Anthropic, actualizado la última vez que usaste Claude Code</div>
-    <div class="model-row" data-field="model"></div>
+    <details class="session">
+      <summary class="session-summary">
+        <span class="session-model" data-field="model"></span>
+        <span class="session-caret" aria-hidden="true"></span>
+      </summary>
+      <div class="session-body">
+        <div class="session-row">
+          <span class="session-key" data-field="tokens-label"></span>
+          <span class="session-val" data-field="tokens"></span>
+        </div>
+        <div class="session-row">
+          <span class="session-key" data-field="context-label"></span>
+          <span class="session-val" data-field="context"></span>
+        </div>
+        <div class="session-name" data-field="session-name"></div>
+      </div>
+    </details>
   </main>
 
   <script src="popover.js"></script>

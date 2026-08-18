@@ -148,6 +148,19 @@ state_json="$(
       model: (.model.display_name // .model.id // null),
       five_hour: resolve_window($old_fh; {pct: $fh_pct, resets_at: (.rate_limits.five_hour.resets_at // null)}),
       seven_day: resolve_window($old_sd; {pct: $sd_pct, resets_at: (.rate_limits.seven_day.resets_at // null)}),
+      # Per-session figures, unlike the windows above, which are per account.
+      # Whichever session refreshed last is the one recorded here - the menu
+      # bar app lives outside Claude Code and has no session of its own, so
+      # "the session you are looking at" can only be approximated by the most
+      # recently active one. That is why the name travels with the numbers:
+      # so the panel can never show you one session labelled as another.
+      session: {
+        name: (.session_name // null),
+        tokens_in: (.context_window.total_input_tokens // null),
+        tokens_out: (.context_window.total_output_tokens // null),
+        context_pct: (.context_window.used_percentage // null),
+        context_size: (.context_window.context_window_size // null)
+      },
       written_at: $written_at
     }
     | . + {available: ((.five_hour.pct != null) or (.seven_day.pct != null))}
