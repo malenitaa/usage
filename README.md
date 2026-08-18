@@ -1,194 +1,174 @@
-# usage
+<p align="center">
+  <img src="docs/icon.png" width="120" alt="">
+</p>
 
-[![Download latest release](https://img.shields.io/github/v/release/malenitaa/usage?label=download&color=6b46c1)](https://github.com/malenitaa/usage/releases/latest)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](#)
+<h1 align="center">Claude Usage</h1>
 
-Minimal icon in the macOS menu bar showing how much **Claude Code quota**
-you've used — the official Anthropic figure for the 5-hour and 7-day
-windows — in your Mac's own traffic-light colors. A **usage/rate-limit
-monitor** for anyone using Claude Code with a Pro or Max account.
+<p align="center">
+  <b>Know how much Claude Code quota you have left — before you hit the wall.</b><br>
+  A macOS menu bar app that keeps Anthropic's official usage figure in front of you, all the time.
+</p>
 
-- 🟢 green: chill (0–50%)
-- 🟡 yellow: halfway there (50–80%)
-- 🔴 red: you're running out of quota (80–100%)
+<p align="center">
+  <a href="https://github.com/malenitaa/usage/releases/latest"><img src="https://img.shields.io/github/v/release/malenitaa/usage?label=download&color=6b46c1" alt="Download latest release"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/platform-macOS-lightgrey" alt="macOS">
+  <a href="./SECURITY.md"><img src="https://img.shields.io/badge/network-none-brightgreen" alt="No network access"></a>
+</p>
 
-Click the icon to see the detail: exact percentage for each window, how
-long until it resets, and when the data was last updated. The panel
-follows your Mac's light/dark appearance and uses macOS's own system
-colors, so it looks like the rest of your system. All the text
-follows your Mac's system language automatically — currently available in
-English and Spanish, with any other language falling back to English.
+<p align="center">
+  <img src="docs/popover.png" width="540" alt="The popover: 5-hour and 7-day usage bars, reset countdowns, and the session disclosure expanded">
+</p>
 
-## Want to install it?
+---
 
-Go straight to **[INSTALL.md](INSTALL.md)** — a step-by-step guide meant
-for anyone, no programming needed.
+## Why
 
-Short requirements: macOS, [Claude Code](https://claude.com/claude-code)
-with a Pro or Max claude.ai account, `jq`, and Node.js.
+Claude Code Pro and Max accounts run two usage limits at once: a **5-hour**
+window and a **7-day** one. Most people find out where they stand by hitting the
+limit in the middle of something.
 
-## What exactly does it show?
+This puts the number in your menu bar instead. It is Anthropic's own figure,
+taken from what Claude Code itself reports — not an estimate rebuilt from token
+counts.
 
-Claude Code Pro/Max accounts have two usage limits running in parallel:
-one for **5 hours** and one for **7 days**. Claude Code reports the used
-percentage of each — this project grabs that official figure (not an
-externally computed estimate) and keeps it always visible in your menu
-bar.
+## What you get
 
-## How it works (short version)
+**A colour-coded icon** in the menu bar, in your Mac's own system colours:
 
-Two small pieces working together:
+- green — plenty left (0-50%)
+- yellow — halfway there (50-80%)
+- red — running out (80-100%)
 
-1. **A statusline script** (`statusline/claude-usage-statusline.sh`,
-   under 120 lines of bash): Claude Code runs it automatically every
-   time you use a session, and the script saves the quota data to a
-   small local JSON file (`~/.claude/quota-status/current.json`).
-2. **A menu bar app** (`app/`, Electron): reads that file every ~18
-   seconds and draws the icon and popover. Nothing else.
+**A popover**, one click away: the exact percentage for each window, a countdown
+to the reset, and when the figure was last refreshed.
 
-They're kept separate on purpose: the script is the only piece that
-sees the real data and can only write its own file; the app only reads
-it. If the app isn't running, the data keeps getting recorded anyway.
+**Your current session**, behind a small disclosure — how many tokens it has
+used, and how much of the context window is gone. Everything above it is per
+account; this part is per session, so it carries the session name.
 
-## Configuring the menu bar display
+**It looks like macOS**, because it borrows from macOS: the panel is the same
+translucent material Control Center uses, it follows your light/dark appearance,
+and the traffic-light colours are the system's own greens, yellows and reds.
 
-The menu bar shows up to three independent pieces, and you choose which
-ones appear: the color-coded icon (`bar`), the 5-hour percentage (`5h`),
-and the 7-day percentage (`7d`). Any combination works — all three, just
-one, two of them, or none.
+**It speaks your language.** English and Spanish, chosen automatically from your
+Mac's system language, with any other language falling back to English.
 
-Create `~/.claude/usage-app-config.json`:
+## Install
 
-```json
-{ "trayDisplay": ["bar", "5h", "7d"] }
-```
+Go to **[INSTALL.md](INSTALL.md)** — written for anyone, no programming needed.
 
-`trayDisplay` is a list containing any of `"bar"`, `"5h"`, `"7d"` — add
-or remove entries to change what's shown:
+You will need macOS, [Claude Code](https://claude.com/claude-code) with a Pro or
+Max claude.ai account, `jq`, and Node.js.
 
-| You want to see              | `trayDisplay`         |
-| ----------------------------- | ---------------------- |
-| Everything (default)          | `["bar", "5h", "7d"]`   |
-| Just the color-coded icon     | `["bar"]`               |
-| Just the two percentages      | `["5h", "7d"]`          |
-| Only the 5-hour percentage    | `["5h"]`                |
-| Only the 7-day percentage     | `["7d"]`                |
-| Nothing (a plain dot, still clickable) | `[]`           |
+## How it works
 
-The order you list them in doesn't matter — they're always shown in the
-order above. Unknown entries are ignored rather than causing an error,
-so a typo just falls back to whatever valid entries are left (or to the
-default if none are). No file at all also falls back to the default.
+Two small pieces, deliberately kept apart:
 
-macOS's menu bar can't draw an actual progress bar next to the icon —
-`"bar"`'s color/fill is the closest thing to that. When `5h` and/or `7d`
-are on, the icon shrinks to a plain dot if `bar` is off, so the numbers
-aren't crowded by a color that isn't shown. Changes take effect on the
-next refresh (~18s) — no restart needed.
+1. **A statusline script.** Claude Code runs it on its own every few seconds
+   while you work. It writes the quota figures to one small local file,
+   `~/.claude/quota-status/current.json`.
+2. **The menu bar app.** It reads that file every ~18 seconds and draws the icon
+   and the popover. That is all it does.
 
-## Configuring the terminal statusline
+Only the script ever sees the real data, and the only file it can write is its
+own. The app only reads. Never open the app and the data is still recorded;
+never run the script and the app says so rather than inventing a number.
 
-Independent of the menu bar setting above — same config file, different
-key, and the two run as separate processes, so any combination of the
-two works. Add `statuslineDisplay` to `~/.claude/usage-app-config.json`:
+## Settings
 
-```json
-{ "statuslineDisplay": "bar" }
-```
-
-`statuslineDisplay` accepts one of:
-
-- `"numbers"` (default) — `Claude usage — 5h: 44%  7d: 38%`
-- `"bar"` — a 10-segment bar per window instead of the exact number,
-  using Unicode block glyphs (█ filled / ░ empty): `Claude usage — 5h
-  [████░░░░░░]  7d [████░░░░░░]`. Needs a terminal font that renders
-  those glyphs — if you see boxes or `?` instead, your font doesn't, and
-  plain `"numbers"` is the safer choice.
-- `"none"` — nothing is printed on a successful read. Errors (e.g. `jq`
-  missing, no quota data yet) are always shown regardless of this
-  setting, since those aren't a display preference — they mean
-  something needs fixing.
-
-Unlike the menu bar's three independent toggles, `bar` and `numbers`
-here are mutually exclusive — pick one, a single terminal line doesn't
-have room for both. An invalid value falls back to `"numbers"`.
-
-Like the rest of the app, this line follows your system language (English
-shown above; e.g. `Uso de Claude — 5h: 44%  7d: 38%` on a Mac set to
-Spanish).
-
-Takes effect on the next time Claude Code refreshes the statusline (per
-its own `refreshInterval`) — no restart needed.
-
-### Both settings, one file
-
-`trayDisplay` and `statuslineDisplay` live in the same
-`~/.claude/usage-app-config.json`, so set both together as one JSON
-object — not as two separate files:
+One file, `~/.claude/usage-app-config.json`, one JSON object:
 
 ```json
 {
-  "trayDisplay": ["bar"],
+  "trayDisplay": ["bar", "5h", "7d"],
+  "panelStyle": "glass",
   "statuslineDisplay": "numbers"
 }
 ```
 
-If you edit this by hand (or overwrite it with a one-off `echo` /
-`cat >`), double-check you're not replacing the whole file and losing
-whichever key you'd set before — merge in the new key instead of
-overwriting.
+Every key is optional. Anything missing, misspelled or invalid falls back to its
+default instead of breaking.
+
+### `trayDisplay` — what sits in the menu bar
+
+Three independent pieces: the colour-coded icon (`bar`), the 5-hour percentage
+(`5h`), the 7-day percentage (`7d`). Any combination works.
+
+| You want to see                        | `trayDisplay`         |
+| -------------------------------------- | --------------------- |
+| Everything                             | `["bar", "5h", "7d"]` |
+| Just the colour-coded icon *(default)* | `["bar"]`             |
+| Just the two percentages               | `["5h", "7d"]`        |
+| Only the 5-hour percentage             | `["5h"]`              |
+| Only the 7-day percentage              | `["7d"]`              |
+| Nothing (a plain dot, still clickable) | `[]`                  |
+
+Order does not matter. The macOS menu bar cannot draw a real progress bar next
+to an icon, so the colour of `"bar"` is the closest thing to one. Takes effect
+on the next refresh (~18s), no restart.
+
+### `panelStyle` — how the popover looks
+
+- `"glass"` *(default)* — the translucent, blurred material, like Control Center.
+- `"solid"` — an opaque panel in the system colours. Easier to read over busy
+  wallpaper, and the better choice if translucency distracts you.
+
+This one needs the app restarted: the two use different kinds of window.
+
+### `statuslineDisplay` — the line in your terminal
+
+- `"numbers"` *(default)* — `Claude usage - 5h: 44%  7d: 38%`
+- `"bar"` — `Claude usage - 5h [####......]  7d [####......]`, drawn with
+  Unicode block glyphs. If your terminal font shows boxes or `?`, use
+  `"numbers"`.
+- `"none"` — prints nothing when the read succeeds. Errors are always shown,
+  because those mean something needs fixing.
+
+Takes effect the next time Claude Code refreshes the statusline.
 
 ## Privacy and security
 
-- **Zero network.** Neither piece ever makes internet calls.
-- **Zero credentials.** It never touches your API key, your session, or
-  any account data — just two percentages and two timestamps.
-- **Zero telemetry.** No accounts, no login, no tracking.
-- All state lives in a single local file you can open and read
-  yourself: `~/.claude/quota-status/current.json`.
-- The entire codebase is two short bash/JavaScript files — meant to be
-  readable end to end before you run it.
+- **No network.** Neither piece ever makes an internet call.
+- **No credentials.** It never touches your API key, your session token, or any
+  account data.
+- **No telemetry.** No account, no login, no tracking, nothing phoned home.
+- **One local file**, readable only by you, that you can open and inspect
+  whenever you like.
 
-## For developers
+The threat model and how the code handles untrusted input are in
+**[SECURITY.md](SECURITY.md)**.
+
+## About the numbers
+
+The percentage can differ slightly from claude.ai for a while. Two honest
+reasons:
+
+- The figure arrives through Claude Code sessions as they refresh, not live.
+- Several sessions share one file, so the app keeps the **highest** reading
+  reported for a window. Usage inside a window only ever goes up, so a lower
+  reading is always an older snapshot from some other session.
+
+The raw figure can also go past 100%: the limit is checked when a request
+starts, not when it finishes, so one admitted just under the cap runs to
+completion and its full cost lands on the window afterwards. Anthropic's own
+usage screen caps what it shows at 100%, and so does this.
+
+## Development
 
 ```bash
-# run the app in dev mode
 cd app
 npm install
-npm run dev
-
-# package the .dmg (ends up in app/dist/)
-npm run build
+npm run dev     # run the app
+npm run build   # package the .dmg into app/dist/
 ```
 
-The statusline script is configured via the `statusLine` key in
-`~/.claude/settings.json` — details in [INSTALL.md](INSTALL.md).
-
-Format of the state file the script writes:
-
-```json
-{
-  "available": true,
-  "model": "Opus",
-  "five_hour": { "pct": 23.5, "resets_at": 1738425600, "captured_at": 1738400000, "stale_suspect": false },
-  "seven_day": { "pct": 41.2, "resets_at": 1738857600, "captured_at": 1738400000, "stale_suspect": false },
-  "written_at": 1738400000
-}
-```
-
-`resets_at`, `captured_at`, and `written_at` are epoch seconds (UTC).
-`stale_suspect` is `true` when a lower reading from another Claude Code
-session was briefly held back instead of overwriting a fresher, higher
-one — the menu bar popover shows a small note when that happens. Error
-messages in the state file (and the terminal statusline) follow your
-system language too. If there's no `rate_limits` data in the payload (a
-non-Pro/Max account, or no response yet in the session), it writes
-`{"available": false, ...}` with a message explaining why.
+Built with Electron. macOS only — see [SECURITY.md](SECURITY.md) for why a
+Windows port is not a recompile.
 
 ## Enjoyed it?
 
-If this was useful and you'd like to support the project:
+If this was useful and you would like to support the project:
 
 - [Cafecito](https://cafecito.app/rezamalena)
 - [Ko-fi](https://ko-fi.com/malenitaa)
