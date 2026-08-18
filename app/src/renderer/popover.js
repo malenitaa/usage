@@ -123,6 +123,7 @@ function renderUnavailable(message) {
 
   panel.appendChild(header);
   panel.appendChild(body);
+  reportHeight();
 }
 
 function ensureAvailableTemplate() {
@@ -145,10 +146,30 @@ async function refresh() {
   document.querySelector('[data-field="updated"]').textContent = formatUpdated(status.written_at);
   document.querySelector('[data-field="model"]').textContent = status.model ? `${T.modelPrefix}${status.model}` : '';
   renderSession(status.session);
+  reportHeight();
+}
+
+// In glass mode the window is resized to match the panel, so every change that
+// can alter the panel height has to report the new one: a refresh, and the
+// disclosure opening or closing.
+let PANEL_STYLE = 'solid';
+
+function reportHeight() {
+  if (PANEL_STYLE !== 'glass') return;
+  const panel = document.querySelector('.panel');
+  if (panel) window.panel.reportHeight(Math.ceil(panel.getBoundingClientRect().height));
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  [T, COLORS] = await Promise.all([window.i18n.strings(), window.palette.colors()]);
+  [T, COLORS, PANEL_STYLE] = await Promise.all([
+    window.i18n.strings(),
+    window.palette.colors(),
+    window.panel.style()
+  ]);
+  document.documentElement.dataset.panelStyle = PANEL_STYLE;
+  document.addEventListener('toggle', (e) => {
+    if (e.target instanceof HTMLDetailsElement) reportHeight();
+  }, true); // capture: the toggle event does not bubble
   localizeStaticText();
   // Captured BEFORE the first refresh() on purpose, and only ever once. The
   // panel by then holds nothing but our own static markup, so the string that

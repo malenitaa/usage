@@ -16,3 +16,10 @@ contextBridge.exposeInMainWorld('palette', {
   // between light and dark appearance is picked up without a restart.
   colors: () => ipcRenderer.invoke('palette:colors')
 });
+
+contextBridge.exposeInMainWorld('panel', {
+  style: () => ipcRenderer.invoke('config:panel-style'),
+  // Glass mode needs the window to hug the panel, and only the renderer knows
+  // how tall the content ended up. Send-only and clamped on the main side.
+  reportHeight: (height) => ipcRenderer.send('popover:height', height)
+});

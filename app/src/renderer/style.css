@@ -151,6 +151,21 @@ html, body {
   display: none; /* drawing our own caret below */
 }
 
+/* No focus ring, in any state. Chromium rings a <summary> once it holds focus,
+   and in a popover this small that ring is the loudest thing on screen while
+   saying nothing the caret does not already say.
+   Unconditional on purpose: a :focus-visible exception looks harmless in a
+   browser, where clicking does not match it, but this window is focused by the
+   main process (popover.focus()) rather than by the click itself, and down that
+   path Chromium does match :focus-visible — so the exception painted the very
+   ring it was written to avoid. The trade-off is that tabbing here shows no
+   outline; the panel has exactly one control, and it is reached by clicking. */
+.session-summary,
+.session-summary:focus,
+.session-summary:focus-visible {
+  outline: none;
+}
+
 .session-model {
   font-size: 8px;
   color: color-mix(in srgb, GrayText 60%, transparent);
@@ -215,4 +230,27 @@ html, body {
   line-height: 1.55;
   text-align: center;
   margin-top: 30px;
+}
+
+
+/* ---- glass ------------------------------------------------------------- */
+/* Opt-in via panelStyle: "glass" in ~/.claude/usage-app-config.json. The blur
+   is macOS vibrancy applied to the window itself (see createPopover in
+   main.js) — CSS backdrop-filter cannot do this, because it only samples the
+   page and there is no page behind a popover, there is the desktop.
+   So here the panel gets out of the way: no background of its own, no border,
+   no radius and no shadow, because the WINDOW now provides all four. */
+html[data-panel-style="glass"],
+html[data-panel-style="glass"] body {
+  height: auto;
+}
+
+html[data-panel-style="glass"] .panel {
+  width: 248px;
+  margin: 0;
+  padding: 13px 15px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }

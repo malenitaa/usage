@@ -11,6 +11,7 @@ const REFRESH_MS = 18000; // 15-20s per spec
 
 let tray = null;
 let popover = null;
+let popoverStyle = null;
 let refreshTimer = null;
 
 // The raw figure can exceed 100: a request admitted just under the cap runs to
@@ -56,7 +57,16 @@ async function refreshTray() {
   return status;
 }
 
-function createPopover() {
+// 'glass' uses macOS vibrancy, which is the only way to actually blur what is
+// behind the window: CSS backdrop-filter only ever samples the page itself, and
+// behind a transparent window there is no page, there is the desktop.
+//
+// Vibrancy paints the WHOLE window, so glass mode needs the window to match the
+// panel exactly — hence the height reporting below. Solid mode keeps the
+// oversized transparent window it already had, where the leftover space is
+// invisible and the panel draws its own shadow in CSS.
+function createPopover(panelStyle) {
+  const glass = panelStyle === 'glass';
   const win = new BrowserWindow({
     width: 248,
     height: 332,
@@ -66,16 +76,19 @@ function createPopover() {
     fullscreenable: false,
     skipTaskbar: true,
     alwaysOnTop: true,
-    transparent: true,
-    backgroundColor: '#00000000',
+    transparent: !glass,
+    ...(glass
+      ? { vibrancy: 'popover', visualEffectState: 'active' }
+      : { backgroundColor: '#00000000' }),
     // macOS draws a shadow (and rounds the corners of) the WINDOW, not the
-    // panel painted inside it. Since the window is deliberately larger than
-    // the panel — it is sized for the tallest the panel ever gets, and the
-    // panel's own height follows its content — that native shadow showed up
-    // as an empty rounded rectangle outlined around everything. The panel
-    // draws its own shadow in CSS instead, which tracks its real size.
-    hasShadow: false,
-    roundedCorners: false,
+    // panel painted inside it. In solid mode the window is deliberately larger
+    // than the panel — it is sized for the tallest the panel ever gets, while
+    // the panel's own height follows its content — so that native shadow showed
+    // up as an empty rounded rectangle outlined around everything. There the
+    // panel draws its own shadow in CSS, which tracks its real size. In glass
+    // mode the window IS the panel, so macOS can shadow and round it correctly.
+    hasShadow: glass,
+    roundedCorners: glass,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -118,7 +131,17 @@ function positionPopover() {
 }
 
 function togglePopover() {
-  if (!popover) popover = createPopover();
+  // The two styles need different window flags (vibrancy cannot be switched on
+  // an existing window), so a config change means building a new popover.
+  const { panelStyle } = readConfig();
+  if (popover && popoverStyle !== panelStyle) {
+    popover.destroy();
+    popover = null;
+  }
+  if (!popover) {
+    popover = createPopover(panelStyle);
+    popoverStyle = panelStyle;
+  }
 
   if (popover.isVisible()) {
     popover.hide();
@@ -144,6 +167,20 @@ app.whenReady().then(() => {
   ipcMain.handle('quota:read', () => readQuotaStatus());
   ipcMain.handle('i18n:strings', () => getStrings());
   ipcMain.handle('palette:colors', () => paletteForRenderer());
+  ipcMain.handle('config:panel-style', () => readConfig().panelStyle);
+
+  // Glass mode only: the window must hug the panel so the vibrancy material
+  // does not extend past it. The renderer measures itself because only it
+  // knows how tall the content ended up (stale warnings, disclosure open).
+  ipcMain.on('popover:height', (event, height) => {
+    if (!popover || popover.isDestroyed() || popoverStyle !== 'glass') return;
+    const h = Math.round(Number(height));
+    if (!Number.isFinite(h) || h < 80 || h > 800) return; // ignore nonsense
+    const b = popover.getBounds();
+    if (b.height === h) return;
+    popover.setBounds({ ...b, height: h });
+    if (popover.isVisible()) positionPopover();
+  });
 
   // macOS hands back different values for the same named system color in light
   // vs dark appearance, so the tray glyph has to be redrawn when the user
