@@ -54,8 +54,8 @@ async function refreshTray() {
 
 function createPopover() {
   const win = new BrowserWindow({
-    width: 280,
-    height: 250,
+    width: 248,
+    height: 278,
     show: false,
     frame: false,
     resizable: false,
@@ -64,6 +64,14 @@ function createPopover() {
     alwaysOnTop: true,
     transparent: true,
     backgroundColor: '#00000000',
+    // macOS draws a shadow (and rounds the corners of) the WINDOW, not the
+    // panel painted inside it. Since the window is deliberately larger than
+    // the panel — it is sized for the tallest the panel ever gets, and the
+    // panel's own height follows its content — that native shadow showed up
+    // as an empty rounded rectangle outlined around everything. The panel
+    // draws its own shadow in CSS instead, which tracks its real size.
+    hasShadow: false,
+    roundedCorners: false,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

@@ -1,7 +1,7 @@
 {
   "name": "claude-usage-tray",
   "version": "1.0.1",
-  "description": "macOS menu bar app showing official Claude Code rate limit usage (5h / 7d), pixel art, pastel semaphore colors",
+  "description": "macOS menu bar app showing official Claude Code rate limit usage (5h / 7d), minimal UI, native macOS system colors",
   "main": "src/main.js",
   "private": true,
   "author": "malenitaa",

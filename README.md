@@ -4,9 +4,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](#)
 
-Pixel icon in the macOS menu bar showing how much **Claude Code quota**
+Minimal icon in the macOS menu bar showing how much **Claude Code quota**
 you've used — the official Anthropic figure for the 5-hour and 7-day
-windows — with pastel traffic-light colors. A **usage/rate-limit
+windows — in your Mac's own traffic-light colors. A **usage/rate-limit
 monitor** for anyone using Claude Code with a Pro or Max account.
 
 - 🟢 green: chill (0–50%)
@@ -14,7 +14,9 @@ monitor** for anyone using Claude Code with a Pro or Max account.
 - 🔴 red: you're running out of quota (80–100%)
 
 Click the icon to see the detail: exact percentage for each window, how
-long until it resets, and when the data was last updated. All the text
+long until it resets, and when the data was last updated. The panel
+follows your Mac's light/dark appearance and uses macOS's own system
+colors, so it looks like the rest of your system. All the text
 follows your Mac's system language automatically — currently available in
 English and Spanish, with any other language falling back to English.
 

@@ -1,27 +1,35 @@
 const REFRESH_MS = 18000;
-const SEGMENTS = 20;
 
 // Populated once from the main process (which resolves the system
 // language) before the first render; window.i18n never varies mid-session.
 let T = null;
 
+// The three semaphore colors, as macOS reports them. Unlike the strings these
+// DO vary mid-session — macOS returns different values for the same named
+// color in light vs dark appearance — so they are re-read on every refresh.
+let COLORS = {};
+
+// Thresholds mirror palette.js's tierForPct on the main side.
 function colorTier(pct) {
   if (pct == null) return null;
-  if (pct >= 80) return 'coral';
-  if (pct >= 50) return 'butter';
-  return 'mint';
+  if (pct >= 80) return 'red';
+  if (pct >= 50) return 'yellow';
+  return 'green';
 }
 
-function renderBar(container, pct) {
-  container.innerHTML = '';
-  const filled = pct == null ? 0 : Math.round((Math.min(Math.max(pct, 0), 100) / 100) * SEGMENTS);
+// One continuous fill rather than a row of discrete blocks, so the bar reads
+// as a smooth level. Both the width and the color are set from JS (the color
+// because it comes from macOS, not from a stylesheet); CSS animates the
+// transition between refreshes.
+//
+// Note the clamp: the percentage itself can exceed 100 — that is what Claude
+// Code reports when a request that was admitted under the cap finishes over it
+// — but the bar stops at full. The exact number is still shown next to it.
+function renderBar(fill, pct) {
+  const clamped = pct == null ? 0 : Math.min(Math.max(pct, 0), 100);
+  fill.style.width = `${clamped}%`;
   const tier = colorTier(pct);
-  for (let i = 0; i < SEGMENTS; i++) {
-    const seg = document.createElement('div');
-    seg.className = 'bar-segment';
-    if (i < filled && tier) seg.classList.add('filled', tier);
-    container.appendChild(seg);
-  }
+  fill.style.backgroundColor = tier ? COLORS[tier] : COLORS.none;
 }
 
 function formatCountdown(resetsAtEpochSeconds) {
@@ -81,7 +89,8 @@ function ensureAvailableTemplate() {
 }
 
 async function refresh() {
-  const status = await window.quota.read();
+  const [status, colors] = await Promise.all([window.quota.read(), window.palette.colors()]);
+  COLORS = colors;
 
   if (!status || !status.available) {
     renderUnavailable(status && status.message);
@@ -96,7 +105,7 @@ async function refresh() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  T = await window.i18n.strings();
+  [T, COLORS] = await Promise.all([window.i18n.strings(), window.palette.colors()]);
   localizeStaticText();
   AVAILABLE_TEMPLATE = document.querySelector('.panel').innerHTML;
 
