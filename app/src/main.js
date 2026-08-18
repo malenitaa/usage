@@ -1,10 +1,11 @@
-const { app, Tray, Menu, BrowserWindow, ipcMain, screen } = require('electron');
+const { app, Tray, Menu, BrowserWindow, ipcMain, screen, nativeTheme } = require('electron');
 const path = require('path');
 
 const { buildTrayIcon } = require('./icon');
 const { readQuotaStatus, worstPct } = require('./quota-reader');
 const { readConfig } = require('./config');
 const { getStrings } = require('./i18n');
+const { paletteForRenderer } = require('./palette');
 
 const REFRESH_MS = 18000; // 15-20s per spec
 
@@ -130,6 +131,12 @@ app.whenReady().then(() => {
 
   ipcMain.handle('quota:read', () => readQuotaStatus());
   ipcMain.handle('i18n:strings', () => getStrings());
+  ipcMain.handle('palette:colors', () => paletteForRenderer());
+
+  // macOS hands back different values for the same named system color in light
+  // vs dark appearance, so the tray glyph has to be redrawn when the user
+  // switches. The popover picks the new values up on its own next refresh.
+  nativeTheme.on('updated', () => { if (tray) refreshTray(); });
 
   refreshTray();
   refreshTimer = setInterval(refreshTray, REFRESH_MS);

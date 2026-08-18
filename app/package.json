@@ -8,7 +8,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "electron .",
-    "build": "electron-builder --mac"
+    "icon": "node build/make-icon.mjs",
+    "build": "npm run icon && electron-builder --mac"
   },
   "devDependencies": {
     "electron": "^43.2.0",
@@ -23,6 +24,7 @@
     "mac": {
       "category": "public.app-category.utilities",
       "target": "dmg",
+      "icon": "build/icon.icns",
       "extendInfo": {
         "LSUIElement": true
       }

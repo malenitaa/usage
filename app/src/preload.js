@@ -10,3 +10,9 @@ contextBridge.exposeInMainWorld('quota', {
 contextBridge.exposeInMainWorld('i18n', {
   strings: () => ipcRenderer.invoke('i18n:strings')
 });
+
+contextBridge.exposeInMainWorld('palette', {
+  // Re-read on every refresh rather than cached once, so switching the system
+  // between light and dark appearance is picked up without a restart.
+  colors: () => ipcRenderer.invoke('palette:colors')
+});

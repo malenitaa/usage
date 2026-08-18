@@ -1,98 +1,91 @@
 const { nativeImage } = require('electron');
 const palette = require('./palette');
+const { inSparkle, inDot } = require('./glyph');
+const { encodePNG } = require('./png');
 
-// Original pixel-art "spark" glyph (not Anthropic's logo/mascot — a simple
-// 4-point sparkle drawn from scratch) so the tray icon reads as "Claude
-// related" without reproducing any trademarked asset. Solid-filled with the
-// semaphore color for the worst of five_hour/seven_day — the icon signals
-// *alert level* via color, the exact percentages live in the popover bars.
-const SHAPE = [
-  '.........',
-  '....#....',
-  '....#....',
-  '...###...',
-  '.#######.',
-  '...###...',
-  '....#....',
-  '....#....',
-  '.........'
-];
+// Menu bar icon. The glyph is solid-filled with the semaphore color for the
+// worst of five_hour/seven_day — the icon signals *alert level* via color, the
+// exact percentages live in the popover bars. The colors come from macOS
+// itself (see palette.js), so the icon matches the rest of the system.
+//
+// The shape is sampled from a formula (see glyph.js) and supersampled here, so
+// it renders as a smooth mark at any size.
+const SIZE = 18;    // points; matches the ~18pt macOS menu bar icon slot
+const SS = 4;       // supersampling factor for antialiasing
+const INSET = 0.82; // shrink the mark inside its box so it does not crowd the
+                    // neighbouring menu bar items
 
-// Small filled dot, used instead of SHAPE when the tray title text is
-// already carrying the percentages (mode 'numbers') so the icon doesn't
-// compete with the text for attention.
-const DOT_SHAPE = [
-  '.........',
-  '.........',
-  '...###...',
-  '..#####..',
-  '..#####..',
-  '..#####..',
-  '...###...',
-  '.........',
-  '.........'
-];
+function renderRGBA(size, pctWorst, available, inside) {
+  const S = size * SS;
+  const px = Buffer.alloc(S * S * 4); // starts fully transparent
+  const [r, g, b] = palette.colorForPct(available ? pctWorst : null).rgb;
 
-function shapeAt(shape, x, y) {
-  if (x < 0 || y < 0 || y >= shape.length || x >= shape[0].length) return false;
-  return shape[y][x] === '#';
-}
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      // Normalize to [-1, 1], sampling at pixel centers.
+      const nx = (((x + 0.5) / S) * 2 - 1) / INSET;
+      const ny = (((y + 0.5) / S) * 2 - 1) / INSET;
+      if (!inside(nx, ny)) continue;
 
-function renderBuffer(pxSize, pctWorst, available, shape) {
-  const GRID_H = shape.length;
-  const GRID_W = shape[0].length;
-  const isOn = (x, y) => shapeAt(shape, x, y);
-  const isOutline = (x, y) => !isOn(x, y) && (isOn(x - 1, y) || isOn(x + 1, y) || isOn(x, y - 1) || isOn(x, y + 1));
-
-  const w = GRID_W * pxSize;
-  const h = GRID_H * pxSize;
-  const buf = Buffer.alloc(w * h * 4); // starts fully transparent (all zero)
-
-  const fillColor = palette.colorForPct(available ? pctWorst : null);
-
-  for (let gy = 0; gy < GRID_H; gy++) {
-    for (let gx = 0; gx < GRID_W; gx++) {
-      let rgba = null;
-      if (isOn(gx, gy)) rgba = [...fillColor.rgb, 255];
-      else if (isOutline(gx, gy)) rgba = [...palette.outline.rgb, 200];
-
-      if (!rgba) continue; // leave transparent
-
-      const [r, g, b, a] = rgba;
-      for (let py = 0; py < pxSize; py++) {
-        for (let px = 0; px < pxSize; px++) {
-          const x = gx * pxSize + px;
-          const y = gy * pxSize + py;
-          const i = (y * w + x) * 4;
-          // Electron's raw createFromBuffer format is BGRA, not RGBA
-          // (verified empirically by round-tripping a known pure-red PNG).
-          buf[i] = b;
-          buf[i + 1] = g;
-          buf[i + 2] = r;
-          buf[i + 3] = a;
-        }
-      }
+      const i = (y * S + x) * 4;
+      px[i] = r;
+      px[i + 1] = g;
+      px[i + 2] = b;
+      px[i + 3] = 255;
     }
   }
-  return { buffer: buf, width: w, height: h };
+  return downsample(px, S, size);
+}
+
+// Box-filter back down to `size`. Colors are averaged weighted by alpha so the
+// transparent surround never bleeds toward black along the antialiased edge.
+function downsample(src, S, size) {
+  const out = Buffer.alloc(size * size * 4);
+  const n = SS * SS;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      let r = 0, g = 0, b = 0, aSum = 0;
+      for (let sy = 0; sy < SS; sy++) {
+        for (let sx = 0; sx < SS; sx++) {
+          const i = (((y * SS + sy) * S) + (x * SS + sx)) * 4;
+          const a = src[i + 3] / 255;
+          r += src[i] * a;
+          g += src[i + 1] * a;
+          b += src[i + 2] * a;
+          aSum += a;
+        }
+      }
+      const o = (y * size + x) * 4;
+      if (aSum > 0) {
+        out[o] = Math.round(r / aSum);
+        out[o + 1] = Math.round(g / aSum);
+        out[o + 2] = Math.round(b / aSum);
+      }
+      out[o + 3] = Math.round((aSum / n) * 255);
+    }
+  }
+  return out;
+}
+
+function dataURL(rgba, size) {
+  return `data:image/png;base64,${encodePNG(rgba, size, size).toString('base64')}`;
 }
 
 // pctWorst: 0-100 (worst of five_hour/seven_day), or null when unavailable.
-// useGlyph: false swaps the sparkle for a plain dot (mode 'numbers', where
-// the tray title text already carries the percentages).
+// useGlyph: false swaps the sparkle for a plain dot (tray display modes where
+// the title text already carries the percentages).
 function buildTrayIcon(pctWorst, available, useGlyph = true) {
-  const shape = useGlyph ? SHAPE : DOT_SHAPE;
-  const at1x = renderBuffer(2, pctWorst ?? 0, available, shape);
-  const at2x = renderBuffer(4, pctWorst ?? 0, available, shape);
+  const inside = useGlyph ? inSparkle : inDot;
+  const pct = pctWorst ?? 0;
 
-  const img = nativeImage.createFromBuffer(at1x.buffer, { width: at1x.width, height: at1x.height });
+  const img = nativeImage.createFromDataURL(dataURL(renderRGBA(SIZE, pct, available, inside), SIZE));
   img.addRepresentation({
     scaleFactor: 2,
-    width: at1x.width,
-    height: at1x.height,
-    buffer: at2x.buffer
+    dataURL: dataURL(renderRGBA(SIZE * 2, pct, available, inside), SIZE * 2)
   });
-  img.setTemplateImage(false); // we want the pastel colors, not a monochrome template
+  // Not a template image: the whole point is to show the semaphore color,
+  // which macOS would flatten to monochrome if this were templated.
+  img.setTemplateImage(false);
   return img;
 }
 
