@@ -118,6 +118,10 @@ function togglePopover() {
 }
 
 app.whenReady().then(() => {
+  // LSUIElement in Info.plist already keeps this out of the Dock from the very
+  // first moment (so relaunching from Finder never drags the user to whichever
+  // Space the app started on). This is the belt-and-braces path for `npm run
+  // dev`, where the plist of the stock Electron binary is the one in effect.
   if (app.dock) app.dock.hide();
   Menu.setApplicationMenu(null);
 
