@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/popover.png" width="540" alt="The popover: 5-hour and 7-day usage bars, reset countdowns, and the session disclosure expanded">
+  <img src="docs/popover-glass.png" width="540" alt="The popover: 5-hour and 7-day usage bars, reset countdowns, and the session disclosure expanded">
 </p>
 
 ---
@@ -110,13 +110,36 @@ Three independent pieces: the colour-coded icon (`bar`), the 5-hour percentage
 
 Order does not matter. Takes effect on the next refresh (~18s), no restart.
 
-### `panelStyle` — how the popover looks
+### `panelStyle` — pick your material
 
-- `"glass"` *(default)* — the translucent, blurred material, like Control Center.
-- `"solid"` — an opaque panel in the system colours. Easier to read over busy
-  wallpaper, and the better choice if translucency distracts you.
+The popover has two personalities, and both are first-class:
 
-This one needs the app restarted: the two use different kinds of window.
+| `"glass"` *(default)* | `"solid"` |
+| :---: | :---: |
+| <img src="docs/popover-glass.png" width="360" alt="Glass panel over a dark desktop"> | <img src="docs/popover-solid.png" width="360" alt="Solid panel in light appearance"> |
+| The same frosted material Control Center uses. It picks up whatever is behind it and just *belongs* in the menu bar. | An honest, opaque panel in the system colours. Unbeatable over a busy wallpaper, and the calmer choice if translucency distracts you. |
+
+Both follow your Mac's light/dark appearance on their own. Switching styles
+takes an app restart — the two are genuinely different kinds of window, not a
+CSS trick.
+
+### `panelTint` — make it yours
+
+Any `"#RRGGBB"` colour washes the panel — glass or solid — while everything
+else stays legible:
+
+<p align="center">
+  <img src="docs/popover-tinted.png" width="420" alt="Glass panel washed in red">
+</p>
+
+```json
+{ "panelStyle": "glass", "panelTint": "#E0473C" }
+```
+
+The wash strength is fixed on purpose. The bars speak in colour — green, yellow,
+red is the whole point — so your tint gets the background, never the microphone.
+Anything that isn't a valid `#RRGGBB` is ignored. Applies the next time the
+popover opens; no restart needed.
 
 ### `statuslineDisplay` — the line in your terminal
 

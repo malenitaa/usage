@@ -11,7 +11,7 @@ const REFRESH_MS = 18000; // 15-20s per spec
 
 let tray = null;
 let popover = null;
-let popoverStyle = null;
+let popoverKey = null;
 let refreshTimer = null;
 
 // The raw figure can exceed 100: a request admitted just under the cap runs to
@@ -133,14 +133,15 @@ function positionPopover() {
 function togglePopover() {
   // The two styles need different window flags (vibrancy cannot be switched on
   // an existing window), so a config change means building a new popover.
-  const { panelStyle } = readConfig();
-  if (popover && popoverStyle !== panelStyle) {
+  const { panelStyle, panelTint } = readConfig();
+  const key = `${panelStyle}|${panelTint ?? ''}`;
+  if (popover && popoverKey !== key) {
     popover.destroy();
     popover = null;
   }
   if (!popover) {
     popover = createPopover(panelStyle);
-    popoverStyle = panelStyle;
+    popoverKey = key;
   }
 
   if (popover.isVisible()) {
@@ -168,12 +169,13 @@ app.whenReady().then(() => {
   ipcMain.handle('i18n:strings', () => getStrings());
   ipcMain.handle('palette:colors', () => paletteForRenderer());
   ipcMain.handle('config:panel-style', () => readConfig().panelStyle);
+  ipcMain.handle('config:panel-tint', () => readConfig().panelTint);
 
   // Glass mode only: the window must hug the panel so the vibrancy material
   // does not extend past it. The renderer measures itself because only it
   // knows how tall the content ended up (stale warnings, disclosure open).
   ipcMain.on('popover:height', (event, height) => {
-    if (!popover || popover.isDestroyed() || popoverStyle !== 'glass') return;
+    if (!popover || popover.isDestroyed() || !(popoverKey || '').startsWith('glass|')) return;
     const h = Math.round(Number(height));
     if (!Number.isFinite(h) || h < 80 || h > 800) return; // ignore nonsense
     const b = popover.getBounds();

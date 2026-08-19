@@ -161,12 +161,20 @@ function reportHeight() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  [T, COLORS, PANEL_STYLE] = await Promise.all([
+  let tint;
+  [T, COLORS, PANEL_STYLE, tint] = await Promise.all([
     window.i18n.strings(),
     window.palette.colors(),
-    window.panel.style()
+    window.panel.style(),
+    window.panel.tint()
   ]);
   document.documentElement.dataset.panelStyle = PANEL_STYLE;
+  // Already validated as #RRGGBB on the main side; a change of tint rebuilds
+  // the whole popover (see togglePopover), so reading it once here is enough.
+  if (tint) {
+    document.documentElement.style.setProperty('--panel-tint', tint);
+    document.documentElement.dataset.tinted = 'true';
+  }
   document.addEventListener('toggle', (e) => {
     if (e.target instanceof HTMLDetailsElement) reportHeight();
   }, true); // capture: the toggle event does not bubble

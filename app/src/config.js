@@ -16,7 +16,14 @@ const VALID_TOKENS = ['bar', '5h', '7d'];
 // system colors — worth having for anyone who finds the translucency harder to
 // read, and it is what non-macOS platforms would get if this were ever ported.
 const VALID_PANEL_STYLES = ['glass', 'solid'];
-const DEFAULT_CONFIG = { trayDisplay: ['bar'], panelStyle: 'glass' };
+// Optional wash of color over the panel, e.g. "#E0473C". Strictly #RRGGBB and
+// nothing else: the value ends up inside a CSS custom property, and a strict
+// shape check here means nothing config-borne can ever smuggle CSS along.
+// The wash strength is fixed in the stylesheet on purpose — the semaphore
+// bars carry meaning through color, so the tint must stay a background hint,
+// never a competing voice.
+const TINT_RE = /^#[0-9a-fA-F]{6}$/;
+const DEFAULT_CONFIG = { trayDisplay: ['bar'], panelStyle: 'glass', panelTint: null };
 
 // Accepts the pre-array single-mode strings too, so an existing config
 // file never breaks silently after an update.
@@ -54,7 +61,10 @@ function readConfig() {
     const panelStyle = VALID_PANEL_STYLES.includes(parsed.panelStyle)
       ? parsed.panelStyle
       : DEFAULT_CONFIG.panelStyle;
-    return { trayDisplay, panelStyle };
+    const panelTint = typeof parsed.panelTint === 'string' && TINT_RE.test(parsed.panelTint)
+      ? parsed.panelTint
+      : null;
+    return { trayDisplay, panelStyle, panelTint };
   } catch {
     return { ...DEFAULT_CONFIG };
   }

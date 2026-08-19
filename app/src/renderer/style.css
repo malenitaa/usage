@@ -254,3 +254,17 @@ html[data-panel-style="glass"] .panel {
   border-radius: 0;
   box-shadow: none;
 }
+
+
+/* ---- tint --------------------------------------------------------------- */
+/* panelTint: "#RRGGBB" in the config washes the panel with a color. The
+   strength is fixed here on purpose: the semaphore bars carry meaning through
+   color, so the tint has to stay a background hint. Solid mixes into Canvas;
+   glass lays a translucent wash over the vibrancy material. */
+html[data-tinted="true"] .panel {
+  background: color-mix(in srgb, var(--panel-tint) 20%, Canvas);
+}
+
+html[data-panel-style="glass"][data-tinted="true"] .panel {
+  background: color-mix(in srgb, var(--panel-tint) 30%, transparent);
+}

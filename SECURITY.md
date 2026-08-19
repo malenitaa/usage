@@ -77,6 +77,11 @@ is denied outright, so nothing can steer the popover somewhere else.
 clipped with an ellipsis so a long one cannot stretch the panel out of its
 window.
 
+**Config values.** The config file is yours, but its values are still validated
+strictly before use — `panelTint` must match `#RRGGBB` exactly before it ever
+reaches a CSS custom property, so nothing config-borne can smuggle CSS into the
+panel. Unknown or malformed values fall back to defaults rather than erroring.
+
 ## Accuracy
 
 Two properties are worth stating plainly, because they look like bugs otherwise.

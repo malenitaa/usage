@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('palette', {
 
 contextBridge.exposeInMainWorld('panel', {
   style: () => ipcRenderer.invoke('config:panel-style'),
+  tint: () => ipcRenderer.invoke('config:panel-tint'),
   // Glass mode needs the window to hug the panel, and only the renderer knows
   // how tall the content ended up. Send-only and clamped on the main side.
   reportHeight: (height) => ipcRenderer.send('popover:height', height)
