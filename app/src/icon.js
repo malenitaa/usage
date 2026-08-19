@@ -1,12 +1,13 @@
 const { nativeImage } = require('electron');
 const palette = require('./palette');
-const { inSparkle, inDot } = require('./glyph');
+const { inRing, inDot } = require('./glyph');
 const { encodePNG } = require('./png');
 
-// Menu bar icon. The glyph is solid-filled with the semaphore color for the
-// worst of five_hour/seven_day — the icon signals *alert level* via color, the
-// exact percentages live in the popover bars. The colors come from macOS
-// itself (see palette.js), so the icon matches the rest of the system.
+// Menu bar icon: a ring gauge. The arc sweeps with the worst of
+// five_hour/seven_day and the fill takes that window's semaphore color, so the
+// icon carries both the level and the alert tier; the exact percentages live
+// in the popover bars. The colors come from macOS itself (see palette.js), so
+// the icon matches the rest of the system.
 //
 // The shape is sampled from a formula (see glyph.js) and supersampled here, so
 // it renders as a smooth mark at any size.
@@ -15,23 +16,34 @@ const SS = 4;       // supersampling factor for antialiasing
 const INSET = 0.82; // shrink the mark inside its box so it does not crowd the
                     // neighbouring menu bar items
 
-function renderRGBA(size, pctWorst, available, inside) {
+function renderRGBA(size, pctWorst, available, useGlyph) {
   const S = size * SS;
   const px = Buffer.alloc(S * S * 4); // starts fully transparent
-  const [r, g, b] = palette.colorForPct(available ? pctWorst : null).rgb;
+  const fill = palette.colorForPct(available ? pctWorst : null).rgb;
+  const track = palette.colorForPct(null).rgb; // neutral system gray
+
+  // Swept fraction of the ring. Clamped to a small minimum while data is
+  // available so 0-1% still shows a live tick instead of an empty circle;
+  // when there is no data the ring is fully swept in neutral gray, which
+  // reads as "present but not measuring".
+  const frac = available ? Math.max(Math.min((pctWorst ?? 0) / 100, 1), 0.03) : 1;
 
   for (let y = 0; y < S; y++) {
     for (let x = 0; x < S; x++) {
       // Normalize to [-1, 1], sampling at pixel centers.
       const nx = (((x + 0.5) / S) * 2 - 1) / INSET;
       const ny = (((y + 0.5) / S) * 2 - 1) / INSET;
-      if (!inside(nx, ny)) continue;
+      const zone = useGlyph ? inRing(nx, ny, frac) : (inDot(nx, ny) ? 'fill' : null);
+      if (!zone) continue;
 
+      const [r, g, b] = zone === 'fill' ? fill : track;
       const i = (y * S + x) * 4;
       px[i] = r;
       px[i + 1] = g;
       px[i + 2] = b;
-      px[i + 3] = 255;
+      // The unswept track is deliberately faint: present enough to close the
+      // circle, quiet enough that the arc stays the figure.
+      px[i + 3] = zone === 'fill' ? 255 : 90;
     }
   }
   return downsample(px, S, size);
@@ -72,16 +84,13 @@ function dataURL(rgba, size) {
 }
 
 // pctWorst: 0-100 (worst of five_hour/seven_day), or null when unavailable.
-// useGlyph: false swaps the sparkle for a plain dot (tray display modes where
+// useGlyph: false swaps the ring for a plain dot (tray display modes where
 // the title text already carries the percentages).
 function buildTrayIcon(pctWorst, available, useGlyph = true) {
-  const inside = useGlyph ? inSparkle : inDot;
-  const pct = pctWorst ?? 0;
-
-  const img = nativeImage.createFromDataURL(dataURL(renderRGBA(SIZE, pct, available, inside), SIZE));
+  const img = nativeImage.createFromDataURL(dataURL(renderRGBA(SIZE, pctWorst, available, useGlyph), SIZE));
   img.addRepresentation({
     scaleFactor: 2,
-    dataURL: dataURL(renderRGBA(SIZE * 2, pct, available, inside), SIZE * 2)
+    dataURL: dataURL(renderRGBA(SIZE * 2, pctWorst, available, useGlyph), SIZE * 2)
   });
   // Not a template image: the whole point is to show the semaphore color,
   // which macOS would flatten to monochrome if this were templated.

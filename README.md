@@ -34,11 +34,15 @@ counts.
 
 ## What you get
 
-**A colour-coded icon** in the menu bar, in your Mac's own system colours:
+**A ring gauge** in the menu bar that fills as you use your quota, coloured in
+your Mac's own system colours:
 
 - green — plenty left (0-50%)
 - yellow — halfway there (50-80%)
 - red — running out (80-100%)
+
+The arc shows *how much*, the colour shows *how urgent* — one glance, two
+answers.
 
 **A popover**, one click away: the exact percentage for each window, a countdown
 to the reset, and when the figure was last refreshed.
@@ -104,9 +108,7 @@ Three independent pieces: the colour-coded icon (`bar`), the 5-hour percentage
 | Only the 7-day percentage              | `["7d"]`              |
 | Nothing (a plain dot, still clickable) | `[]`                  |
 
-Order does not matter. The macOS menu bar cannot draw a real progress bar next
-to an icon, so the colour of `"bar"` is the closest thing to one. Takes effect
-on the next refresh (~18s), no restart.
+Order does not matter. Takes effect on the next refresh (~18s), no restart.
 
 ### `panelStyle` — how the popover looks
 

@@ -1,7 +1,8 @@
 // Generates the macOS app icon (build/icon.icns) from scratch — no image
-// editor, no dependencies. Draws the same sparkle the menu bar uses, from the
-// same geometry module, so the Dock/Finder icon and the tray glyph are the
-// same mark at two sizes.
+// editor, no dependencies. Draws the same ring gauge the menu bar uses, from
+// the same geometry module, so the Dock/Finder icon and the tray glyph are the
+// same mark at two sizes. The arc is fixed at two thirds here: an app icon is
+// a picture of what the app does, not a live reading.
 //
 // Run: node build/make-icon.mjs   (needs macOS `iconutil`, which ships with the OS)
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
@@ -11,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { inSparkle } = require('../src/glyph.js');
+const { inRing } = require('../src/glyph.js');
 const { encodePNG } = require('../src/png.js');
 
 const BUILD_DIR = dirname(fileURLToPath(import.meta.url));
@@ -33,7 +34,8 @@ function renderRGBA(size) {
   const S = size * SS;
   const px = Buffer.alloc(S * S * 4); // transparent
   const body = 0.402 * 2;  // icon body spans ~80% of the canvas, per Apple's grid
-  const mark = 0.46;       // sparkle's half-width as a fraction of the canvas
+  const mark = 0.44;       // ring's half-width as a fraction of the canvas
+  const ARC = 0.66;        // fixed sweep: identity, not a live reading
 
   for (let y = 0; y < S; y++) {
     for (let x = 0; x < S; x++) {
@@ -41,7 +43,9 @@ function renderRGBA(size) {
       const ny = ((y + 0.5) / S) * 2 - 1;
       if (!inSquircle(nx / body, ny / body)) continue;
 
-      const rgb = inSparkle(nx / mark, ny / mark) ? MARK : BG;
+      const zone = inRing(nx / mark, ny / mark, ARC);
+      // Track slightly lifted from the background so the circle reads closed.
+      const rgb = zone === 'fill' ? MARK : zone === 'track' ? [58, 60, 66] : BG;
       const i = (y * S + x) * 4;
       px[i] = rgb[0];
       px[i + 1] = rgb[1];
