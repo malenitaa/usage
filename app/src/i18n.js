@@ -24,6 +24,7 @@ const STRINGS = {
     readError: 'Could not read the state file.',
     invalidState: 'The state file has an invalid format.',
     trayNoData: 'Claude usage: no data',
+    trayQuit: 'Quit Claude Usage',
     trayTooltipTemplate: 'Claude usage — 5h: {fh}  7d: {sd}'
   },
   es: {
@@ -46,6 +47,7 @@ const STRINGS = {
     readError: 'No se pudo leer el archivo de estado.',
     invalidState: 'El archivo de estado tiene un formato inválido.',
     trayNoData: 'Uso de Claude: sin datos',
+    trayQuit: 'Salir de Claude Usage',
     trayTooltipTemplate: 'Uso de Claude — 5h: {fh}  7d: {sd}'
   }
 };

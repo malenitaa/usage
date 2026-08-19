@@ -145,13 +145,37 @@ To have it start automatically every time you turn on your Mac
   `~/.claude/quota-status/current.json`. You can open and look at it
   yourself at any time.
 
+## Quit
+
+Right-click the ring icon → Quit. (Left-click opens the panel.)
+
 ## Uninstall
 
-- Remove the app from Applications (or delete the folder if you used
-  `npm run dev`).
-- Remove the `"statusLine"` key from `~/.claude/settings.json` (or run
-  `/statusline clear` inside Claude Code).
-- Optional: delete `~/.claude/quota-status/`.
+This is the app's **entire** footprint — remove these and nothing is left:
 
-None of this leaves traces anywhere else — all state lives in those two
-places.
+**macOS**
+
+1. Quit the app (right-click the icon → Quit), then delete "Claude
+   Usage" from Applications.
+2. Delete `~/Library/Application Support/claude-usage-tray` — Electron's
+   working folder (a few MB of browser-engine boilerplate, no personal
+   data) — and `~/Library/Preferences/com.malenitaa.claude-usage-tray.plist`.
+3. Remove the `"statusLine"` key from `~/.claude/settings.json` (or run
+   `/statusline clear` inside Claude Code).
+4. Delete `~/.claude/quota-status/` and `~/.claude/usage-app-config.json`.
+5. Delete the cloned `~/usage` folder.
+6. If you added the app to Login Items yourself, remove it there too
+   (System Settings → General → Login Items). The app never adds itself.
+
+**Windows**
+
+1. Settings → Apps → Claude Usage → Uninstall. The uninstaller also
+   removes the app's working folder (`%APPDATA%\claude-usage-tray`).
+2. Remove the `"statusLine"` key from `%USERPROFILE%\.claude\settings.json`.
+3. Delete `%USERPROFILE%\.claude\quota-status\`,
+   `%USERPROFILE%\.claude\usage-app-config.json`, and the cloned
+   `usage` folder.
+
+No launch agents, no services, no kernel extensions, nothing in system
+folders, and it never adds itself to startup. And as always: nothing was
+ever sent off your machine, so there is nothing to delete anywhere else.

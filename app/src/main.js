@@ -185,6 +185,15 @@ app.whenReady().then(() => {
   tray = new Tray(buildTrayIcon(0, false));
   tray.on('click', togglePopover);
 
+  // Right-click -> Quit. Without this there was NO way to quit the app short
+  // of Activity Monitor: no Dock icon (LSUIElement), no application menu, and
+  // left-click only toggles the popover. A tray app must be as easy to leave
+  // as it is to use. Built once — the language is fixed for the session.
+  const quitMenu = Menu.buildFromTemplate([
+    { label: getStrings().trayQuit, click: () => app.quit() }
+  ]);
+  tray.on('right-click', () => tray.popUpContextMenu(quitMenu));
+
   ipcMain.handle('quota:read', () => readQuotaStatus());
   ipcMain.handle('i18n:strings', () => getStrings());
   ipcMain.handle('palette:colors', () => paletteForRenderer());

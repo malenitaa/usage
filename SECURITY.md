@@ -17,9 +17,14 @@ JavaScript files, and there is no service to compromise.
 | `~/.claude/quota-status/current.json` | read/write | the statusline script only     |
 | `~/.claude/usage-app-config.json`     | read       | you                            |
 | `~/.claude/settings.json`             | read       | you / Claude Code              |
+| `~/Library/Application Support/claude-usage-tray/` (macOS) · `%APPDATA%\claude-usage-tray\` (Windows) | read/write | Electron, the app's runtime — browser-engine boilerplate, no personal data |
+| `~/Library/Preferences/com.malenitaa.claude-usage-tray.plist` (macOS) | write | macOS itself, standard app-preferences stub |
 
-That is the complete list. The app never writes anywhere; the script writes one
-file, its own.
+That is the complete list. The app's own code never writes anywhere — the last
+two rows are what the runtime and the OS create for any app of this kind. The
+script writes one file, its own. The full uninstall walkthrough, covering every
+row above, is in [INSTALL.md](INSTALL.md#uninstall); the Windows uninstaller
+removes the app's working folder by itself.
 
 ## What it never touches
 
