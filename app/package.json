@@ -1,6 +1,6 @@
 {
   "name": "claude-usage-tray",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "macOS menu bar app showing official Claude Code rate limit usage (5h / 7d), minimal UI, native macOS system colors",
   "main": "src/main.js",
   "private": true,
