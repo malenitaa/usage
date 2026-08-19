@@ -66,6 +66,10 @@ You will need macOS or Windows, and [Claude Code](https://claude.com/claude-code
 with a Pro or Max claude.ai account. macOS also needs `jq`; Windows needs
 nothing extra — its script is PowerShell, which ships with the system.
 
+Leaving is documented as thoroughly as arriving: the same guide lists the
+app's [complete footprint and how to remove it](INSTALL.md#uninstall) — every
+file it ever writes, on both platforms.
+
 ## How it works
 
 Two small pieces, deliberately kept apart:
