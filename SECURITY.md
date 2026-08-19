@@ -106,16 +106,27 @@ displays cap at 100%, matching what Anthropic's own usage screen shows.
 
 ## Platform
 
-macOS only, and not by accident. A Windows or Linux port is not a recompile:
+macOS and Windows. The two are not one binary pretending: the platform
+differences are handled explicitly, and where a capability does not exist, the
+app degrades honestly rather than faking it.
 
-- `tray.setTitle()` — the percentages next to the menu bar icon — exists only on
-  macOS. Windows tray icons have no text label at all.
-- The statusline is bash and depends on `jq` and `defaults read -g AppleLocale`.
-- The app icon is built with `iconutil`, a macOS binary.
-- The glass panel is macOS vibrancy.
+- **The statusline script exists twice** — `claude-usage-statusline.sh` (bash +
+  `jq`, macOS) and `claude-usage-statusline.ps1` (PowerShell, no dependencies,
+  Windows). Same logic, same state-file format, same test bank: window ordering
+  by `resets_at`, highest-reading-wins, `stale_suspect`, per-session figures,
+  display capped at 100. If you change one, change both.
+- **Tray text is macOS-only.** Windows tray icons have no text slot, so the
+  `5h`/`7d` display settings are carried there by the tooltip, and the ring's
+  arc already encodes the level.
+- **Glass is vibrancy on macOS, acrylic on Windows 11.** On Windows 10 the
+  material silently does not apply, so the window carries an explicit fallback
+  background color — a plain panel instead of a white rectangle.
+- **Both app icons come from the same geometry.** `.icns` via `iconutil`
+  (macOS-only tool, skipped elsewhere) and `.ico` assembled byte-by-byte in
+  the same script, with PNG-compressed entries.
 
-The Electron half would port with moderate work. The statusline would need a
-rewrite, and the menu bar text has no equivalent elsewhere.
+The Windows port is newer than the macOS app and has seen less real-world use.
+The shared logic is covered by the same 16-check test bank on both scripts.
 
 ## Dependencies
 

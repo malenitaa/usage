@@ -6,13 +6,13 @@
 
 <p align="center">
   <b>Know how much Claude Code quota you have left — before you hit the wall.</b><br>
-  A macOS menu bar app that keeps Anthropic's official usage figure in front of you, all the time.
+  A menu bar app for macOS — and system tray app for Windows — that keeps Anthropic's official usage figure in front of you, all the time.
 </p>
 
 <p align="center">
   <a href="https://github.com/malenitaa/usage/releases/latest"><img src="https://img.shields.io/github/v/release/malenitaa/usage?label=download&color=6b46c1" alt="Download latest release"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
-  <img src="https://img.shields.io/badge/platform-macOS-lightgrey" alt="macOS">
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey" alt="macOS and Windows">
   <a href="./SECURITY.md"><img src="https://img.shields.io/badge/network-none-brightgreen" alt="No network access"></a>
 </p>
 
@@ -62,15 +62,17 @@ Mac's system language, with any other language falling back to English.
 
 Go to **[INSTALL.md](INSTALL.md)** — written for anyone, no programming needed.
 
-You will need macOS, [Claude Code](https://claude.com/claude-code) with a Pro or
-Max claude.ai account, `jq`, and Node.js.
+You will need macOS or Windows, and [Claude Code](https://claude.com/claude-code)
+with a Pro or Max claude.ai account. macOS also needs `jq`; Windows needs
+nothing extra — its script is PowerShell, which ships with the system.
 
 ## How it works
 
 Two small pieces, deliberately kept apart:
 
-1. **A statusline script.** Claude Code runs it on its own every few seconds
-   while you work. It writes the quota figures to one small local file,
+1. **A statusline script** — bash on macOS, PowerShell on Windows, same logic.
+   Claude Code runs it on its own every few seconds while you work. It writes
+   the quota figures to one small local file,
    `~/.claude/quota-status/current.json`.
 2. **The menu bar app.** It reads that file every ~18 seconds and draws the icon
    and the popover. That is all it does.
@@ -109,6 +111,9 @@ Three independent pieces: the colour-coded icon (`bar`), the 5-hour percentage
 | Nothing (a plain dot, still clickable) | `[]`                  |
 
 Order does not matter. Takes effect on the next refresh (~18s), no restart.
+The `5h`/`7d` text lives next to the icon on macOS only — Windows tray icons
+have no text slot, so there the tooltip carries the numbers and the ring's arc
+already shows the level.
 
 ### `panelStyle` — pick your material
 
@@ -119,9 +124,10 @@ The popover has two personalities, and both are first-class:
 | <img src="docs/popover-glass.png" width="360" alt="Glass panel over a dark desktop"> | <img src="docs/popover-solid.png" width="360" alt="Solid panel in light appearance"> |
 | The same frosted material Control Center uses. It picks up whatever is behind it and just *belongs* in the menu bar. | An honest, opaque panel in the system colours. Unbeatable over a busy wallpaper, and the calmer choice if translucency distracts you. |
 
-Both follow your Mac's light/dark appearance on their own. Switching styles
-takes an app restart — the two are genuinely different kinds of window, not a
-CSS trick.
+Both follow your system's light/dark appearance on their own. On Windows the
+glass is acrylic (Windows 11; on Windows 10 it gracefully lands as a plain dark
+or light panel). Switching styles takes an app restart — the two are genuinely
+different kinds of window, not a CSS trick.
 
 ### `panelTint` — make it yours
 
@@ -188,8 +194,10 @@ npm run dev     # run the app
 npm run build   # package the .dmg into app/dist/
 ```
 
-Built with Electron. macOS only — see [SECURITY.md](SECURITY.md) for why a
-Windows port is not a recompile.
+Built with Electron. `npm run build` packages the macOS `.dmg`,
+`npm run build:win` the Windows installer — both icons (`.icns`/`.ico`) are
+generated from the same geometry module by `npm run icon`. Platform differences
+are detailed in [SECURITY.md](SECURITY.md#platform).
 
 ## Enjoyed it?
 

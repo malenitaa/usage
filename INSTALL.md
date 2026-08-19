@@ -1,20 +1,22 @@
 # Install and use (for anyone, no coding needed)
 
-This shows you, in your Mac's menu bar, how much Claude Code quota
-you've used in the last 5 hours and the last 7 days — with the official
-figure Anthropic reports, not an estimate.
+This shows you, in your menu bar (macOS) or system tray (Windows), how
+much Claude Code quota you've used in the last 5 hours and the last 7
+days — with the official figure Anthropic reports, not an estimate.
 
 Requirements:
 
-- macOS.
+- macOS or Windows.
 - [Claude Code](https://claude.com/claude-code) installed, with a
   **Pro or Max** claude.ai account (quota data only exists for those
   accounts).
-- [`jq`](https://jqlang.org/) installed. If you don't have it:
+- **macOS only:** [`jq`](https://jqlang.org/) installed. If you don't have it:
   ```bash
   brew install jq
   ```
-  (if you don't have Homebrew: [brew.sh](https://brew.sh/))
+  (if you don't have Homebrew: [brew.sh](https://brew.sh/)).
+  Windows needs nothing extra — the script there is PowerShell, which
+  ships with Windows.
 
 ## Before installing anything: check what you're about to run
 
@@ -23,13 +25,16 @@ running on your machine. Before installing any script or app like this
 (this one included), it's good practice to look at what it does. Here's
 everything to read, in two short files:
 
-- [`statusline/claude-usage-statusline.sh`](statusline/claude-usage-statusline.sh) — under 90 lines of bash.
+- [`statusline/claude-usage-statusline.sh`](statusline/claude-usage-statusline.sh) — bash, for macOS — or
+  [`statusline/claude-usage-statusline.ps1`](statusline/claude-usage-statusline.ps1) — PowerShell, for Windows. Same logic.
 - [`app/src/`](app/src/) — the app, a handful of short JavaScript files.
 
 It makes no network calls anywhere. More detail on how it's built and
 why it's safe in [README.md](README.md), under "Privacy and security."
 
 ## Step 1 — the script that reads your quota
+
+**On macOS:**
 
 ```bash
 git clone https://github.com/malenitaa/usage.git ~/usage
@@ -50,18 +55,44 @@ the rest:
 }
 ```
 
+**On Windows:** clone the same repository (for example to
+`%USERPROFILE%\usage`) and use the PowerShell script instead:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"%USERPROFILE%\\usage\\statusline\\claude-usage-statusline.ps1\"",
+    "refreshInterval": 30
+  }
+}
+```
+
+(If `%USERPROFILE%` doesn't expand in your setup, write the full path,
+e.g. `C:\\Users\\you\\usage\\...`.)
+
 Save it, and the next time you use Claude Code (any session), data
 starts getting recorded automatically. Nothing else needs restarting.
 
-## Step 2 — the menu bar app
+## Step 2 — the menu bar / tray app
 
-Go to [Releases](https://github.com/malenitaa/usage/releases) and
-download the `.dmg` for your Mac (`arm64` if it's a Mac with an Apple
-M1/M2/M3/M4 chip, or the other `.dmg` if it's an older Intel Mac — if
-you're not sure, try `arm64` first). Open it and drag "Claude Usage"
-to "Applications" like any other app.
+Go to [Releases](https://github.com/malenitaa/usage/releases) and:
 
-### The first time you open it, macOS will warn you about something
+- **macOS:** download the `.dmg` (`arm64` for Apple Silicon Macs —
+  M1/M2/M3/M4 — which is most Macs today). Open it and drag "Claude
+  Usage" to "Applications" like any other app.
+- **Windows:** download `Claude Usage Setup <version>.exe` and run it.
+  The icon appears in the system tray (bottom-right, near the clock —
+  check the overflow arrow if you don't see it).
+
+### The first time you open it, your system will warn you about something
+
+**On Windows,** SmartScreen may say "Windows protected your PC" because
+the installer isn't signed with a paid certificate. Click "More info" →
+"Run anyway". Same story as on macOS below: normal for unsigned
+open-source apps, and you should *not* disable any system protection.
+
+### On macOS it looks like this
 
 Since this app isn't signed by a registered Apple developer (it's not
 an App Store app or from a company with a certificate), the first time
