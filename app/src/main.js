@@ -63,6 +63,23 @@ async function refreshTray() {
   return status;
 }
 
+// Follow the user's current Space instead of pulling them over to
+// whichever Space the window was first opened on. skipTransformProcessType
+// avoids Electron toggling the app between accessory/foreground to apply
+// this, which is what was causing macOS to switch Spaces on every click
+// (this window is transparent and the app is already a UIElement via
+// app.dock.hide(), exactly the case the option exists for).
+//
+// Called before EVERY open, not just once at creation: macOS drops the flag
+// after a few hours of the desktop living its life (sleep/wake, Spaces being
+// created, closed and auto-rearranged), and from that moment on showing the
+// window dragged the user back to the Space where it had been created. Setting
+// it once was why the app behaved for a while and then started jumping.
+function followCurrentSpace(win) {
+  if (!IS_MAC) return;
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
+}
+
 // 'glass' uses macOS vibrancy, which is the only way to actually blur what is
 // behind the window: CSS backdrop-filter only ever samples the page itself, and
 // behind a transparent window there is no page, there is the desktop.
@@ -110,13 +127,7 @@ function createPopover(panelStyle) {
     }
   });
 
-  // Follow the user's current Space instead of pulling them over to
-  // whichever Space the app happened to launch on. skipTransformProcessType
-  // avoids Electron toggling the app between accessory/foreground to apply
-  // this, which is what was causing macOS to switch Spaces on every click
-  // (this window is transparent and the app is already a UIElement via
-  // app.dock.hide(), exactly the case the option exists for).
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
+  followCurrentSpace(win);
 
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   win.on('blur', () => win.hide());
@@ -170,6 +181,7 @@ function togglePopover() {
   }
   popover.webContents.send('force-refresh');
   positionPopover();
+  followCurrentSpace(popover);
   popover.show();
   popover.focus();
 }
