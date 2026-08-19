@@ -9,3 +9,4 @@ README.privado.md
 # Icono generado por app/build/make-icon.mjs (se regenera con `npm run icon`)
 app/build/icon.icns
 app/build/icon.iconset/
+app/build/icon.ico
