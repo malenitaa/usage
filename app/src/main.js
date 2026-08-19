@@ -8,6 +8,7 @@ const { getStrings } = require('./i18n');
 const { paletteForRenderer } = require('./palette');
 
 const REFRESH_MS = 18000; // 15-20s per spec
+const IS_MAC = process.platform === 'darwin';
 
 let tray = null;
 let popover = null;
@@ -37,13 +38,18 @@ async function refreshTray() {
   const icon = buildTrayIcon(pct, !!status.available, showBar);
   tray.setImage(icon);
 
-  if (status.available && (show5h || show7d)) {
-    const parts = [];
-    if (show5h) parts.push(`5h ${formatPct(status.five_hour?.pct)}`);
-    if (show7d) parts.push(`7d ${formatPct(status.seven_day?.pct)}`);
-    tray.setTitle(parts.join(' · '));
-  } else {
-    tray.setTitle('');
+  // Tray text exists only on macOS — Windows tray icons have no label slot,
+  // so there the 5h/7d settings are carried by the tooltip (set below) and
+  // the ring itself, which already encodes the level.
+  if (IS_MAC) {
+    if (status.available && (show5h || show7d)) {
+      const parts = [];
+      if (show5h) parts.push(`5h ${formatPct(status.five_hour?.pct)}`);
+      if (show7d) parts.push(`7d ${formatPct(status.seven_day?.pct)}`);
+      tray.setTitle(parts.join(' · '));
+    } else {
+      tray.setTitle('');
+    }
   }
 
   if (status.available) {
@@ -78,7 +84,14 @@ function createPopover(panelStyle) {
     alwaysOnTop: true,
     transparent: !glass,
     ...(glass
-      ? { vibrancy: 'popover', visualEffectState: 'active' }
+      ? IS_MAC
+        // Real glass on each platform: vibrancy on macOS, acrylic on
+        // Windows 11. The backgroundColor under acrylic is the fallback for
+        // Windows 10, where the material silently does not apply — without
+        // it the window would be plain white in both appearances.
+        ? { vibrancy: 'popover', visualEffectState: 'active' }
+        : { backgroundMaterial: 'acrylic',
+            backgroundColor: nativeTheme.shouldUseDarkColors ? '#1e1f24' : '#f2f2f7' }
       : { backgroundColor: '#00000000' }),
     // macOS draws a shadow (and rounds the corners of) the WINDOW, not the
     // panel painted inside it. In solid mode the window is deliberately larger
@@ -123,6 +136,13 @@ function positionPopover() {
 
   let x = Math.round(trayBounds.x + trayBounds.width / 2 - winBounds.width / 2);
   let y = Math.round(trayBounds.y + trayBounds.height);
+  // The Windows taskbar usually lives at the bottom of the screen; when the
+  // tray icon sits in the lower half of its display, open upward instead of
+  // running off the bottom edge. On macOS the menu bar is always at the top,
+  // so this branch never fires there.
+  if (trayBounds.y > display.workArea.y + display.workArea.height / 2) {
+    y = Math.round(trayBounds.y - winBounds.height);
+  }
 
   x = Math.min(Math.max(x, display.workArea.x), display.workArea.x + display.workArea.width - winBounds.width);
   y = Math.min(y, display.workArea.y + display.workArea.height - winBounds.height);

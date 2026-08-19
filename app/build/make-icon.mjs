@@ -1,8 +1,12 @@
-// Generates the macOS app icon (build/icon.icns) from scratch — no image
-// editor, no dependencies. Draws the same ring gauge the menu bar uses, from
-// the same geometry module, so the Dock/Finder icon and the tray glyph are the
-// same mark at two sizes. The arc is fixed at two thirds here: an app icon is
-// a picture of what the app does, not a live reading.
+// Generates the app icons (build/icon.icns for macOS, build/icon.ico for
+// Windows) from scratch — no image editor, no dependencies. Both draw the same
+// ring gauge the menu bar uses, from the same geometry module, so every face
+// of the app is the same mark. The arc is fixed at two thirds here: an app
+// icon is a picture of what the app does, not a live reading.
+//
+// The .ico is assembled by hand: the format is a 6-byte header, one 16-byte
+// directory entry per image, then the images themselves — and since Vista,
+// entries can simply BE PNG files, so the same encoder serves both platforms.
 //
 // Run: node build/make-icon.mjs   (needs macOS `iconutil`, which ships with the OS)
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
@@ -101,6 +105,29 @@ for (const base of [16, 32, 128, 256, 512]) {
   writeFileSync(join(iconset, `icon_${base}x${base}@2x.png`), pngFor(base * 2));
 }
 
-execFileSync('iconutil', ['-c', 'icns', iconset, '-o', join(BUILD_DIR, 'icon.icns')]);
+// iconutil ships with macOS only; on any other host just skip the .icns.
+if (process.platform === 'darwin') {
+  execFileSync('iconutil', ['-c', 'icns', iconset, '-o', join(BUILD_DIR, 'icon.icns')]);
+  console.log('wrote build/icon.icns');
+}
 rmSync(iconset, { recursive: true, force: true });
-console.log('wrote build/icon.icns');
+
+const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256];
+const blobs = ICO_SIZES.map((s) => pngFor(s));
+const header = Buffer.alloc(6);
+header.writeUInt16LE(1, 2); // type: icon
+header.writeUInt16LE(ICO_SIZES.length, 4);
+const dir = Buffer.alloc(16 * ICO_SIZES.length);
+let offset = 6 + dir.length;
+ICO_SIZES.forEach((s, i) => {
+  const e = i * 16;
+  dir[e] = s === 256 ? 0 : s;     // width (0 means 256)
+  dir[e + 1] = s === 256 ? 0 : s; // height
+  dir.writeUInt16LE(1, e + 4);    // planes
+  dir.writeUInt16LE(32, e + 6);   // bits per pixel
+  dir.writeUInt32LE(blobs[i].length, e + 8);
+  dir.writeUInt32LE(offset, e + 12);
+  offset += blobs[i].length;
+});
+writeFileSync(join(BUILD_DIR, 'icon.ico'), Buffer.concat([header, dir, ...blobs]));
+console.log('wrote build/icon.ico');

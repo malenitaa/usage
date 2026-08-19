@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "electron .",
     "icon": "node build/make-icon.mjs",
-    "build": "npm run icon && electron-builder --mac"
+    "build": "npm run icon && electron-builder --mac",
+    "build:win": "npm run icon && electron-builder --win"
   },
   "devDependencies": {
     "electron": "^43.2.0",
@@ -28,6 +29,21 @@
       "extendInfo": {
         "LSUIElement": true
       }
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "deleteAppDataOnUninstall": false
     }
   }
 }
