@@ -70,13 +70,18 @@ async function refreshTray() {
 // (this window is transparent and the app is already a UIElement via
 // app.dock.hide(), exactly the case the option exists for).
 //
-// Called before EVERY open, not just once at creation: macOS drops the flag
-// after a few hours of the desktop living its life (sleep/wake, Spaces being
-// created, closed and auto-rearranged), and from that moment on showing the
-// window dragged the user back to the Space where it had been created. Setting
-// it once was why the app behaved for a while and then started jumping.
+// Called before EVERY open, not just once at creation: after a few hours of the
+// desktop living its life (sleep/wake, Spaces created, closed and
+// auto-rearranged) macOS re-pins the window to the Space it was born on, and
+// from then on every click dragged the user back there.
+//
+// The off/on toggle is the whole point. AppKit ignores setCollectionBehavior
+// when handed the value the window already holds, so simply re-asserting the
+// flag was a silent no-op: the bit was still set while the window was pinned
+// anyway. Clearing it first is what forces the Space assignment to be recomputed.
 function followCurrentSpace(win) {
   if (!IS_MAC) return;
+  win.setVisibleOnAllWorkspaces(false, { skipTransformProcessType: true });
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
 }
 
@@ -99,6 +104,11 @@ function createPopover(panelStyle) {
     fullscreenable: false,
     skipTaskbar: true,
     alwaysOnTop: true,
+    // A menu bar popover must never activate the app: activation is what makes
+    // macOS switch you to whichever Space it thinks the app lives on. An
+    // NSPanel can take key focus (so the blur that closes the popover still
+    // fires) without the app ever coming to the foreground.
+    ...(IS_MAC ? { type: 'panel' } : {}),
     transparent: !glass,
     ...(glass
       ? IS_MAC
