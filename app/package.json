@@ -28,7 +28,11 @@
       "icon": "build/icon.icns",
       "extendInfo": {
         "LSUIElement": true
-      }
+      },
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "win": {
       "icon": "build/icon.ico",
@@ -44,6 +48,7 @@
     "nsis": {
       "oneClick": true,
       "deleteAppDataOnUninstall": true
-    }
+    },
+    "afterSign": "build/notarize.js"
   }
 }

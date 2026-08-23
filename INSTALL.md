@@ -189,3 +189,35 @@ This is the app's **entire** footprint — remove these and nothing is left:
 No launch agents, no services, no kernel extensions, nothing in system
 folders, and it never adds itself to startup. And as always: nothing was
 ever sent off your machine, so there is nothing to delete anywhere else.
+
+## For maintainers: signing & notarization (optional)
+
+By default `npm run build` produces an **unsigned** `.dmg` — that's why
+users see the Gatekeeper prompt above. If you have a paid **Apple
+Developer** account you can ship a signed + notarized build so it opens
+with no warnings. This is opt-in: without the environment variables
+below the build stays exactly as it is today.
+
+You need:
+
+- A **"Developer ID Application"** certificate in your login keychain
+  (from your Apple Developer account), or set `CSC_LINK` / `CSC_NAME`.
+- An **app-specific password** for your Apple ID
+  (appleid.apple.com → Sign-In and Security → App-Specific Passwords).
+- Xcode Command Line Tools (`xcode-select --install`) — the notarize
+  step uses `xcrun notarytool`/`stapler`/`ditto`, no extra npm deps.
+
+Then:
+
+```bash
+export APPLE_TEAM_ID=XXXXXXXXXX
+export APPLE_ID=you@example.com
+export APPLE_APP_SPECIFIC_PASSWORD=xxxx-xxxx-xxxx-xxxx
+cd ~/usage/app
+npm run build
+```
+
+The `afterSign` hook (`app/build/notarize.js`) zips the signed `.app`,
+submits it to Apple, waits, and staples the ticket. Entitlements live in
+`app/build/entitlements.mac.plist`. If the three variables aren't set the
+hook prints "se saltea la notarización" and the build proceeds unsigned.
