@@ -20,7 +20,8 @@ let refreshTimer = null;
 // usage screen caps what it shows at 100%, so cap it here too and stay
 // consistent with claude.ai. The state file still stores the raw value.
 function formatPct(pct) {
-  return pct == null ? '?' : `${Math.min(pct, 100)}%`;
+  if (typeof pct !== 'number' || !Number.isFinite(pct)) return '?';
+  return `${Math.min(pct, 100)}%`;
 }
 
 async function refreshTray() {
