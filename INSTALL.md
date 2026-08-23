@@ -100,11 +100,21 @@ you open it macOS may say something like *"cannot verify the
 developer."* This is normal, expected behavior for any unsigned
 open-source app — it does **not** mean it's broken. To open it:
 
+**On macOS 15 (Sequoia) and later:** right-clicking no longer works
+for unsigned apps. Instead:
+
+1. Double-click the app once. macOS blocks it and shows a dialog.
+2. Open **System Settings → Privacy & Security**.
+3. Scroll to the Security section: it names the blocked app, with an
+   **"Open Anyway"** button. Click it and confirm.
+
+**On macOS 14 (Sonoma) and earlier:**
+
 1. Right-click (or Ctrl+click) the app in Applications.
 2. Choose "Open."
 3. Confirm in the dialog that appears.
 
-That's all it takes, just once. **You don't need to disable Gatekeeper
+Either way it is a one-time step. **You don't need to disable Gatekeeper
 or any system security protection** — if something asks you to, be
 suspicious.
 
