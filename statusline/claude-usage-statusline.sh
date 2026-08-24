@@ -66,9 +66,14 @@ if ! command -v jq >/dev/null 2>&1; then
   # so this has to be a plain printf, not a jq-built JSON string. Safe
   # because msg_no_jq is one of our own fixed strings above, never
   # attacker/user-controlled input.
-  tmp_file="$(mktemp "$STATE_DIR/.current.json.XXXXXX")"
-  printf '{"available": false, "message": "%s", "written_at": %s}\n' "$msg_no_jq" "$now_epoch" > "$tmp_file"
-  mv -f "$tmp_file" "$STATE_FILE"
+  # Without jq there is no way to merge into the schema-2 file without
+  # clobbering other accounts' entries, so only write when no file exists
+  # yet (the message is what matters — it tells the app what to say).
+  if [[ ! -f "$STATE_FILE" ]]; then
+    tmp_file="$(mktemp "$STATE_DIR/.current.json.XXXXXX")"
+    printf '{"available": false, "message": "%s", "written_at": %s}\n' "$msg_no_jq" "$now_epoch" > "$tmp_file"
+    mv -f "$tmp_file" "$STATE_FILE"
+  fi
   echo "$msg_no_jq_line"
   exit 0
 fi
@@ -85,6 +90,22 @@ if [[ -f "$CONFIG_FILE" ]]; then
   esac
 fi
 
+# Which account this session belongs to. Concurrent sessions can be logged
+# into different accounts via CLAUDE_CONFIG_DIR (e.g. an alias exporting a
+# per-account config dir), and the statusline inherits each session's
+# environment, so this attribution is exact even when sessions overlap. The
+# rolling windows are per ACCOUNT, so mixing readings from two accounts into
+# one pair of windows produced a chimera: each window silently showed
+# whichever account had reported the later resets_at.
+account_file="${CLAUDE_CONFIG_DIR:-$HOME}/.claude.json"
+account_id="default"
+if [[ -f "$account_file" ]]; then
+  candidate="$(jq -r '.oauthAccount.emailAddress // empty' "$account_file" 2>/dev/null || true)"
+  if [[ -n "$candidate" ]]; then
+    account_id="$candidate"
+  fi
+fi
+
 input="$(cat)"
 
 # Claude Code can run multiple concurrent sessions (different terminals,
@@ -94,11 +115,21 @@ input="$(cat)"
 # lagging session silently overwriting a higher, more current percentage
 # with a stale lower one, we compare against whatever is already on disk
 # and keep the higher reading for as long as it is the same window.
+# The file as a whole is schema 2: {schema: 2, accounts: {<id>: entry}}.
+# resolve_window below compares readings WITHIN one account, so what it
+# needs as "old state" is this account's own entry. A schema-1 file (one
+# accountless entry at the top level) is treated as empty rather than
+# migrated: there is no way to know which account wrote it, and the
+# windows relearn themselves on the next few refreshes anyway.
+old_file="{}"
 old_state="{}"
 if [[ -f "$STATE_FILE" ]]; then
   old_candidate="$(cat "$STATE_FILE" 2>/dev/null || true)"
   if printf '%s' "$old_candidate" | jq -e . >/dev/null 2>&1; then
-    old_state="$old_candidate"
+    if [[ "$(printf '%s' "$old_candidate" | jq -r '.schema // 1')" == "2" ]]; then
+      old_file="$old_candidate"
+      old_state="$(printf '%s' "$old_candidate" | jq -c --arg id "$account_id" '.accounts[$id] // {}')"
+    fi
   fi
 fi
 
@@ -174,8 +205,22 @@ if [[ -z "$state_json" ]]; then
   state_json="$(jq -n --argjson written_at "$now_epoch" --arg message "$msg_parse_error" '{available: false, message: $message, written_at: $written_at}')"
 fi
 
+# Fold this account's entry back into the whole file, preserving every
+# other account's entry untouched. Entries that no session has refreshed
+# in 30 days are pruned — a logged-out account would otherwise show its
+# last reading forever.
+file_json="$(
+  jq -nc --argjson old_file "$old_file" --argjson entry "$state_json" \
+        --arg id "$account_id" --argjson now "$now_epoch" '
+    $old_file
+    | {schema: 2, accounts: (.accounts // {}), written_at: $now}
+    | .accounts[$id] = ($entry + {account: $id})
+    | .accounts |= with_entries(select((.value.written_at // 0) >= ($now - 2592000)))
+  '
+)"
+
 tmp_file="$(mktemp "$STATE_DIR/.current.json.XXXXXX")"
-printf '%s\n' "$state_json" > "$tmp_file"
+printf '%s\n' "$file_json" > "$tmp_file"
 mv -f "$tmp_file" "$STATE_FILE"
 
 # Build the human-readable statusline line from our OWN trusted state
