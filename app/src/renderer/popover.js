@@ -85,14 +85,67 @@ function formatUpdated(writtenAtEpochSeconds) {
   return `${T.updatedPrefix}${d.toLocaleTimeString()}`;
 }
 
-function renderMeter(sectionId, pct, resetsAt, staleSuspect) {
-  const section = document.getElementById(sectionId);
+// Every element is created and filled with textContent — account ids, like
+// session names, come from outside this app and must never travel as HTML.
+function buildMeter(label, win) {
+  const section = document.createElement('section');
+  section.className = 'meter';
+
+  const row = document.createElement('div');
+  row.className = 'meter-row';
+  const labelEl = document.createElement('span');
+  labelEl.className = 'meter-label';
+  labelEl.textContent = label;
+  const pctEl = document.createElement('span');
+  pctEl.className = 'meter-pct';
+  const pct = win?.pct ?? null;
   // Capped at 100 to match Anthropic's own usage screen — see formatPct() in
   // main.js for why the raw number can go above it.
-  section.querySelector('[data-field="pct"]').textContent = pct == null ? '--%' : `${Math.min(pct, 100)}%`;
-  renderBar(section.querySelector('[data-field="bar"]'), pct);
-  section.querySelector('[data-field="reset"]').textContent = formatCountdown(resetsAt);
-  section.querySelector('[data-field="stale"]').textContent = staleSuspect ? T.staleSuspect : '';
+  pctEl.textContent = pct == null ? '--%' : `${Math.min(pct, 100)}%`;
+  row.append(labelEl, pctEl);
+
+  const track = document.createElement('div');
+  track.className = 'bar-track';
+  const fill = document.createElement('div');
+  fill.className = 'bar-fill';
+  track.appendChild(fill);
+  renderBar(fill, pct);
+
+  const reset = document.createElement('div');
+  reset.className = 'meter-reset';
+  reset.textContent = formatCountdown(win?.resets_at ?? null);
+
+  section.append(row, track, reset);
+  if (win?.stale_suspect) {
+    const stale = document.createElement('div');
+    stale.className = 'meter-stale';
+    stale.textContent = T.staleSuspect;
+    section.appendChild(stale);
+  }
+  return section;
+}
+
+// One account -> the two bars, exactly the panel as it always looked. More
+// than one -> each account gets a header naming it plus its own two bars.
+// The header shows the email's local part (the full address is the tooltip):
+// two of anyone's accounts usually differ before the @, and the domain is
+// the least interesting pixel-hungry half.
+function renderAccounts(accounts) {
+  const container = document.getElementById('accounts');
+  container.replaceChildren();
+  const several = accounts.length > 1;
+  for (const acct of accounts) {
+    if (several) {
+      const header = document.createElement('div');
+      header.className = 'account-header';
+      const id = acct.account || T.accountUnknown;
+      header.textContent = id.includes('@') ? id.split('@')[0] : id;
+      header.title = id;
+      container.appendChild(header);
+    }
+    container.appendChild(buildMeter('5H', acct.five_hour));
+    container.appendChild(buildMeter('7D', acct.seven_day));
+  }
 }
 
 // Captured lazily, after localizeStaticText() has fixed up the header and
@@ -105,7 +158,6 @@ function localizeStaticText() {
   document.querySelector('[data-field="tokens-label"]').textContent = T.sessionTokens;
   document.querySelector('[data-field="context-label"]').textContent = T.sessionContext;
   document.querySelector('.disclaimer').textContent = T.disclaimer;
-  document.querySelectorAll('[data-field="reset"]').forEach((el) => { el.textContent = T.resetUnknown; });
   document.querySelector('[data-field="updated"]').textContent = T.updatedUnknown;
 }
 
@@ -128,7 +180,7 @@ function renderUnavailable(message) {
 
 function ensureAvailableTemplate() {
   const panel = document.querySelector('.panel');
-  if (!panel.querySelector('#five-hour')) panel.innerHTML = AVAILABLE_TEMPLATE;
+  if (!panel.querySelector('#accounts')) panel.innerHTML = AVAILABLE_TEMPLATE;
 }
 
 async function refresh() {
@@ -141,8 +193,9 @@ async function refresh() {
   }
 
   ensureAvailableTemplate();
-  renderMeter('five-hour', status.five_hour?.pct ?? null, status.five_hour?.resets_at ?? null, status.five_hour?.stale_suspect ?? false);
-  renderMeter('seven-day', status.seven_day?.pct ?? null, status.seven_day?.resets_at ?? null, status.seven_day?.stale_suspect ?? false);
+  renderAccounts(status.accounts?.length
+    ? status.accounts
+    : [{ account: null, five_hour: status.five_hour, seven_day: status.seven_day }]);
   document.querySelector('[data-field="updated"]').textContent = formatUpdated(status.written_at);
   document.querySelector('[data-field="model"]').textContent = status.model ? `${T.modelPrefix}${status.model}` : '';
   renderSession(status.session);

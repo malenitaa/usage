@@ -98,7 +98,10 @@ function createPopover(panelStyle) {
   const glass = panelStyle === 'glass';
   const win = new BrowserWindow({
     width: 248,
-    height: 332,
+    // Tall enough for the biggest panel the state can produce (several
+    // accounts, each with two bars). In solid mode the surplus is invisible;
+    // in glass mode the height is corrected to the content anyway.
+    height: 640,
     show: false,
     frame: false,
     resizable: false,

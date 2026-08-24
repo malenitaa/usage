@@ -268,3 +268,19 @@ html[data-tinted="true"] .panel {
 html[data-panel-style="glass"][data-tinted="true"] .panel {
   background: color-mix(in srgb, var(--panel-tint) 30%, transparent);
 }
+
+
+/* Multi-account: a small dimmed name above each account's pair of bars,
+   styled like a quieter sibling of the panel title. */
+.account-header {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: GrayText;
+  margin: 10px 0 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-header:first-child { margin-top: 0; }
