@@ -78,7 +78,12 @@ function normalize(parsed) {
   // them: dated bars beat an empty panel.
   const nowSec = Math.floor(Date.now() / 1000);
   const live = entries.filter((e) =>
-    [e.five_hour, e.seven_day].some((w) => w?.resets_at != null && w.resets_at > nowSec));
+    [e.five_hour, e.seven_day].some((w) => w?.resets_at != null && w.resets_at > nowSec)
+    // A day without a single refresh means no session of that account runs
+    // on this machine anymore — a logged-out or returned account should
+    // leave the panel on its own, not wait for its weekly window to expire.
+    // It comes back by itself the moment any session of it reports again.
+    && (e.written_at ?? 0) >= nowSec - 86400);
   const shown = live.length ? live : entries;
 
   const available = shown.some((e) => e.available);
