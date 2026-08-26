@@ -52,14 +52,40 @@ function normalize(parsed) {
     return { ...parsed, accounts: parsed.available ? [{ ...parsed, account: null }] : [] };
   }
 
-  const entries = Object.values(parsed.accounts ?? {})
+  const raw = Object.values(parsed.accounts ?? {})
     .filter((e) => e && typeof e === 'object')
     .sort((a, b) => (b.written_at ?? 0) - (a.written_at ?? 0));
-  const available = entries.some((e) => e.available);
+
+  // resets_at identifies a window down to the second, and windows are per
+  // account — so two entries sharing one are the SAME account recorded under
+  // two names. That happens when the login of a config dir changes mid-day
+  // (/login from account A to B): readings written before the switch carry
+  // the old name, and the ghost would linger until the 30-day prune. Newest
+  // name wins (that is the login the user actually switched TO).
+  const seenWindows = new Set();
+  const entries = [];
+  for (const e of raw) {
+    const ids = [e.five_hour?.resets_at, e.seven_day?.resets_at].filter((v) => v != null);
+    if (ids.some((v) => seenWindows.has(v))) continue;
+    ids.forEach((v) => seenWindows.add(v));
+    entries.push(e);
+  }
+
+  // An account whose every window already ended has nothing current to say —
+  // hide it while any other account still has live data, so a machine that
+  // stopped using some login isn't stuck showing its frozen bars. When ALL
+  // entries are expired (a Mac that just hasn't run Claude in a week), keep
+  // them: dated bars beat an empty panel.
+  const nowSec = Math.floor(Date.now() / 1000);
+  const live = entries.filter((e) =>
+    [e.five_hour, e.seven_day].some((w) => w?.resets_at != null && w.resets_at > nowSec));
+  const shown = live.length ? live : entries;
+
+  const available = shown.some((e) => e.available);
 
   const worstWindow = (key) => {
     let worst = null;
-    for (const e of entries) {
+    for (const e of shown) {
       const w = e[key];
       if (w && typeof w.pct === 'number' && (worst == null || w.pct > worst.pct)) {
         worst = { ...w, account: e.account ?? null };
@@ -75,10 +101,10 @@ function normalize(parsed) {
 
   // Model and session figures travel with whichever session refreshed last
   // (entries are sorted by written_at), same approximation as before.
-  const latest = entries.find((e) => e.available) ?? entries[0];
+  const latest = shown.find((e) => e.available) ?? shown[0];
   return {
     available: true,
-    accounts: entries.filter((e) => e.available),
+    accounts: shown.filter((e) => e.available),
     five_hour: worstWindow('five_hour'),
     seven_day: worstWindow('seven_day'),
     model: latest?.model ?? null,
