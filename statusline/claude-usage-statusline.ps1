@@ -3,9 +3,10 @@
 # (5h / 7d) to ~/.claude/quota-status/current.json and prints a summary line.
 #
 # Same contract as the bash script, no jq needed (ConvertFrom-Json is built
-# in). Kept logic-identical on purpose: window ordering by resets_at, highest
-# reading wins inside a window, stale_suspect, per-session figures, display
-# capped at 100. If you change one script, change both.
+# in). Kept logic-identical on purpose: schema-2 per-account state keyed by
+# the session's CLAUDE_CONFIG_DIR login, window ordering by resets_at,
+# highest reading wins inside a window, stale_suspect, per-session figures,
+# display capped at 100. If you change one script, change both.
 #
 # Security notes, mirroring the bash version:
 #   - stdin is parsed once with ConvertFrom-Json and only ever treated as
@@ -51,8 +52,26 @@ if (Test-Path $configFile) {
   } catch {}
 }
 
-function Write-State($obj) {
-  $json = ($obj | ConvertTo-Json -Depth 6)
+# Folds this account's entry into the schema-2 state file
+# ({schema: 2, accounts: {<id>: entry}}), preserving every other account's
+# entry untouched and pruning entries no session refreshed in 30 days.
+# A schema-1 file (one accountless entry at the top level) is treated as
+# empty rather than migrated - there is no way to know which account wrote
+# it, and the windows relearn themselves on the next few refreshes.
+function Write-State($entry) {
+  $accounts = [ordered]@{}
+  if ($null -ne $script:oldFile -and $script:oldFile.schema -eq 2 -and $null -ne $script:oldFile.accounts) {
+    foreach ($prop in $script:oldFile.accounts.PSObject.Properties) {
+      $written = $prop.Value.written_at
+      if ($null -ne $written -and [long]$written -ge ($script:now - 2592000)) {
+        $accounts[$prop.Name] = $prop.Value
+      }
+    }
+  }
+  $entry.account = $script:accountId
+  $accounts[$script:accountId] = $entry
+  $file = [ordered]@{ schema = 2; accounts = $accounts; written_at = $script:now }
+  $json = ($file | ConvertTo-Json -Depth 8)
   $tmp = Join-Path $script:stateDir (".current.json.$PID.tmp")
   # WriteAllText writes UTF-8 without BOM; a BOM would break JSON.parse in
   # the menu bar app that reads this file.
@@ -60,19 +79,45 @@ function Write-State($obj) {
   Move-Item -Force $tmp $script:stateFile
 }
 
+# Which account this session belongs to - same attribution as the bash
+# script: concurrent sessions can be logged into different accounts via
+# CLAUDE_CONFIG_DIR, and each session's environment travels with it, so
+# reading the email from that config dir's .claude.json is exact even when
+# sessions overlap. The rolling windows are per ACCOUNT; before this, two
+# accounts sharing one pair of windows produced a silent collage.
+$configDir = $env:CLAUDE_CONFIG_DIR
+if ([string]::IsNullOrEmpty($configDir)) { $configDir = $HOME }
+$accountId = 'default'
+$accountFile = Join-Path $configDir '.claude.json'
+if (Test-Path $accountFile) {
+  try {
+    $acct = (Get-Content -Raw $accountFile | ConvertFrom-Json).oauthAccount.emailAddress
+    if (-not [string]::IsNullOrEmpty($acct)) { $accountId = $acct }
+  } catch {}
+}
+
 $payload = [Console]::In.ReadToEnd()
+
+# Previous state, if readable. Resolve-Window compares readings WITHIN one
+# account, so $old is this account's own entry from the schema-2 file.
+$oldFile = $null
+$old = $null
+if (Test-Path $stateFile) {
+  try { $oldFile = Get-Content -Raw $stateFile | ConvertFrom-Json } catch {}
+  if ($null -ne $oldFile -and $oldFile.schema -eq 2 -and $null -ne $oldFile.accounts) {
+    $prop = $oldFile.accounts.PSObject.Properties[$accountId]
+    if ($null -ne $prop) { $old = $prop.Value }
+  } else {
+    $oldFile = $null
+  }
+}
+
 try {
   $data = $payload | ConvertFrom-Json
 } catch {
   Write-State ([ordered]@{ available = $false; message = $msgParseError; written_at = $now })
   Write-Output $msgParseError
   exit 0
-}
-
-# Previous state, if readable - used to order readings between sessions.
-$old = $null
-if (Test-Path $stateFile) {
-  try { $old = Get-Content -Raw $stateFile | ConvertFrom-Json } catch {}
 }
 
 function Round1([object]$v) {
