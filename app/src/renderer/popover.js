@@ -125,17 +125,18 @@ function buildMeter(label, win) {
   return section;
 }
 
-// One account -> the two bars, exactly the panel as it always looked. More
-// than one -> each account gets a header naming it plus its own two bars.
-// The header shows the email's local part (the full address is the tooltip):
-// two of anyone's accounts usually differ before the @, and the domain is
-// the least interesting pixel-hungry half.
+// Each account gets a header naming it plus its own two bars — also when
+// there is only one: on a machine where accounts come and go, an unnamed
+// pair of bars forces the reader to guess whose usage this is. The header
+// shows the email's local part (the full address is the tooltip): two of
+// anyone's accounts usually differ before the @, and the domain is the
+// least interesting pixel-hungry half. Only a legacy accountless entry
+// (schema-1 file) renders bare, like the panel always did.
 function renderAccounts(accounts) {
   const container = document.getElementById('accounts');
   container.replaceChildren();
-  const several = accounts.length > 1;
   for (const acct of accounts) {
-    if (several) {
+    if (acct.account) {
       const header = document.createElement('div');
       header.className = 'account-header';
       const id = acct.account || T.accountUnknown;
