@@ -185,6 +185,36 @@ inherits — concurrent sessions of different accounts don't mix. The ring in
 the menu bar shows the worst number across whatever is live. One account
 looks exactly like the app always did, name included.
 
+### How to run more than one account in the terminal
+
+Claude Code keeps its login in a config dir — `~/.claude.json` and friends —
+and the `CLAUDE_CONFIG_DIR` environment variable points it at a different
+one. Give each extra account its own dir behind an alias:
+
+**macOS / Linux** — add to `~/.zshrc` (or `~/.bashrc`):
+
+```bash
+alias claude-work='CLAUDE_CONFIG_DIR="$HOME/.claude-work" claude'
+```
+
+**Windows** — add to your PowerShell profile (`notepad $PROFILE`):
+
+```powershell
+function claude-work { $env:CLAUDE_CONFIG_DIR = "$HOME\.claude-work"; & claude @args }
+```
+
+Open a new terminal, run `claude-work`, and `/login` with that account —
+once. The dir is created for you and the login sticks to it. From then on,
+plain `claude` is one account and `claude-work` is another, running side by
+side without stepping on each other, and this panel shows each under its own
+name. Add as many aliases as you have accounts.
+
+One warning from lived experience: the **default** config dir (plain
+`claude`) is shared with the Claude desktop app. Logging into the desktop
+app replaces that login — including for terminals you already have open,
+whose work then quietly bills the new account. Accounts you care about
+keeping separate belong behind an alias, where nothing else can touch them.
+
 ## Privacy and security
 
 - **No network.** Neither piece ever makes an internet call.
