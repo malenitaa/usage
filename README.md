@@ -93,7 +93,8 @@ One file, `~/.claude/usage-app-config.json`, one JSON object:
 {
   "trayDisplay": ["bar", "5h", "7d"],
   "panelStyle": "glass",
-  "statuslineDisplay": "numbers"
+  "statuslineDisplay": "numbers",
+  "staleMinutes": 10
 }
 ```
 
@@ -162,11 +163,35 @@ popover opens; no restart needed.
 
 Takes effect the next time Claude Code refreshes the statusline.
 
+### `staleMinutes` — when a closed session should leave the panel
+
+The panel shows what is *running*. The statusline only reports while a
+Claude Code session is alive, so once an account's last session closes, its
+reading stops refreshing — and after this many minutes (default `10`) the
+panel lets it go instead of showing a frozen number. With nothing running at
+all, the panel says so and the tray goes neutral.
+
+- Raise it if an idle-but-open terminal of yours disappears from the panel —
+  idle sessions report irregularly.
+- `0` — never hide: always show each account's last known reading, stamped
+  with the time it was taken.
+
+## More than one account
+
+If you run Claude Code under several accounts on one machine (say, via
+`CLAUDE_CONFIG_DIR` aliases), each account gets its own name and pair of
+bars in the panel, attributed by the login of the config dir each session
+inherits — concurrent sessions of different accounts don't mix. The ring in
+the menu bar shows the worst number across whatever is live. One account
+looks exactly like the app always did, name included.
+
 ## Privacy and security
 
 - **No network.** Neither piece ever makes an internet call.
-- **No credentials.** It never touches your API key, your session token, or any
-  account data.
+- **No credentials.** It never touches your API key or your session token.
+  To tell accounts apart, the statusline script reads exactly one field from
+  your local Claude Code config — the logged-in email — and it never leaves
+  your machine.
 - **No telemetry.** No account, no login, no tracking, nothing phoned home.
 - **One local file**, readable only by you, that you can open and inspect
   whenever you like.
