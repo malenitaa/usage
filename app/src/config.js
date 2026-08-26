@@ -23,7 +23,13 @@ const VALID_PANEL_STYLES = ['glass', 'solid'];
 // bars carry meaning through color, so the tint must stay a background hint,
 // never a competing voice.
 const TINT_RE = /^#[0-9a-fA-F]{6}$/;
-const DEFAULT_CONFIG = { trayDisplay: ['bar'], panelStyle: 'glass', panelTint: null };
+// How long after its last reading an account still counts as "live". The
+// statusline only writes while a Claude Code session is running, so once
+// every session of an account is closed its entry stops refreshing — after
+// this many minutes the panel treats the account as gone rather than
+// showing a frozen photo. 0 disables the cutoff (always show last-known).
+const DEFAULT_STALE_MINUTES = 10;
+const DEFAULT_CONFIG = { trayDisplay: ['bar'], panelStyle: 'glass', panelTint: null, staleMinutes: DEFAULT_STALE_MINUTES };
 
 // Accepts the pre-array single-mode strings too, so an existing config
 // file never breaks silently after an update.
@@ -64,7 +70,11 @@ function readConfig() {
     const panelTint = typeof parsed.panelTint === 'string' && TINT_RE.test(parsed.panelTint)
       ? parsed.panelTint
       : null;
-    return { trayDisplay, panelStyle, panelTint };
+    const staleMinutes = typeof parsed.staleMinutes === 'number'
+      && Number.isFinite(parsed.staleMinutes) && parsed.staleMinutes >= 0 && parsed.staleMinutes <= 10080
+      ? parsed.staleMinutes
+      : DEFAULT_STALE_MINUTES;
+    return { trayDisplay, panelStyle, panelTint, staleMinutes };
   } catch {
     return { ...DEFAULT_CONFIG };
   }

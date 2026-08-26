@@ -2,6 +2,7 @@ const fs = require('fs/promises');
 const path = require('path');
 const os = require('os');
 const { getStrings } = require('./i18n');
+const { readConfig } = require('./config');
 
 const STATE_FILE = path.join(os.homedir(), '.claude', 'quota-status', 'current.json');
 
@@ -76,15 +77,17 @@ function normalize(parsed) {
   // stopped using some login isn't stuck showing its frozen bars. When ALL
   // entries are expired (a Mac that just hasn't run Claude in a week), keep
   // them: dated bars beat an empty panel.
+  // Live sessions only: the statusline writes while a session runs, so an
+  // entry nobody refreshed in staleMinutes means every session of that
+  // account is closed — and the panel's contract is to show what is
+  // RUNNING, not a frozen photo of what once ran. staleMinutes: 0 opts out
+  // and always shows the last-known reading. Windows that already ended
+  // are dropped either way.
   const nowSec = Math.floor(Date.now() / 1000);
-  const live = entries.filter((e) =>
+  const { staleMinutes } = readConfig();
+  const shown = entries.filter((e) =>
     [e.five_hour, e.seven_day].some((w) => w?.resets_at != null && w.resets_at > nowSec)
-    // A day without a single refresh means no session of that account runs
-    // on this machine anymore — a logged-out or returned account should
-    // leave the panel on its own, not wait for its weekly window to expire.
-    // It comes back by itself the moment any session of it reports again.
-    && (e.written_at ?? 0) >= nowSec - 86400);
-  const shown = live.length ? live : entries;
+    && (staleMinutes === 0 || (e.written_at ?? 0) >= nowSec - staleMinutes * 60));
 
   const available = shown.some((e) => e.available);
 
@@ -101,7 +104,15 @@ function normalize(parsed) {
 
   if (!available) {
     const t = getStrings();
-    return { available: false, message: t.noStateYet, written_at: parsed.written_at ?? null, accounts: [] };
+    const anyData = entries.some((e) => e.available);
+    return {
+      available: false,
+      // Data exists but nothing is running vs. nothing was ever recorded —
+      // two different situations, two different messages.
+      message: anyData ? t.noLiveSessions : t.noStateYet,
+      written_at: parsed.written_at ?? null,
+      accounts: []
+    };
   }
 
   // Model and session figures travel with whichever session refreshed last
