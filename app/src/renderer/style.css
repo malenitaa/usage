@@ -284,3 +284,11 @@ html[data-panel-style="glass"][data-tinted="true"] .panel {
   white-space: nowrap;
 }
 .account-header:first-child { margin-top: 0; }
+
+.account-updated {
+  color: GrayText;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  margin-left: 5px;
+}

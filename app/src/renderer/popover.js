@@ -141,6 +141,17 @@ function renderAccounts(accounts) {
       const id = acct.account || T.accountUnknown;
       header.textContent = id.includes('@') ? id.split('@')[0] : id;
       header.title = id;
+      // Account usage is real even with every session closed (the windows
+      // keep burning down server-side), but a reading nobody has refreshed
+      // in a while is a photo, not a feed — say when it was taken, so a
+      // frozen number can never pass for a live one.
+      if (acct.written_at != null && Math.floor(Date.now() / 1000) - acct.written_at > 120) {
+        const asOf = document.createElement('span');
+        asOf.className = 'account-updated';
+        const d = new Date(acct.written_at * 1000);
+        asOf.textContent = `· ${T.accountAsOfPrefix}${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        header.appendChild(asOf);
+      }
       container.appendChild(header);
     }
     container.appendChild(buildMeter('5H', acct.five_hour));
