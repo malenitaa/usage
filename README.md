@@ -189,7 +189,13 @@ looks exactly like the app always did, name included.
 
 Claude Code keeps its login in a config dir — `~/.claude.json` and friends —
 and the `CLAUDE_CONFIG_DIR` environment variable points it at a different
-one. Give each extra account its own dir behind an alias:
+one. Give each extra account its own dir behind an alias.
+
+You choose exactly two words in the lines below and copy the rest verbatim:
+the **alias name** (`claude-work` — the command you will type) and the
+**dir name** (`.claude-work` — where that account's login will live). Name
+them after the account: `claude-personal`, `claude-uni`, whatever reads
+well to you.
 
 **macOS / Linux** — add to `~/.zshrc` (or `~/.bashrc`):
 
@@ -203,8 +209,9 @@ alias claude-work='CLAUDE_CONFIG_DIR="$HOME/.claude-work" claude'
 function claude-work { $env:CLAUDE_CONFIG_DIR = "$HOME\.claude-work"; & claude @args }
 ```
 
-Open a new terminal, run `claude-work`, and `/login` with that account —
-once. The dir is created for you and the login sticks to it. From then on,
+Open a new terminal (so it picks up the alias), run `claude-work`, and
+`/login` with that account — once. The dir is created for you and the login
+sticks to it. From then on,
 plain `claude` is one account and `claude-work` is another, running side by
 side without stepping on each other, and this panel shows each under its own
 name. Add as many aliases as you have accounts.
