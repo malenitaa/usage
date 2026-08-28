@@ -163,8 +163,14 @@ state_json="$(
       (old_window.pct // null) as $old_pct
       | (old_window.resets_at // null) as $old_resets_at
       | (new_window.resets_at // null) as $new_resets_at
-      | if $old_pct == null or new_window.pct == null
-           or $old_resets_at == null or $new_resets_at == null
+      # An incomplete NEW reading (a session whose payload is missing this
+      # window) must never erase a known value: two concurrent sessions of
+      # one account can disagree on which windows they carry, and the one
+      # with less information used to null out the data of the other on every
+      # refresh, ping-ponging the panel between a number and --%.
+      | if new_window.pct == null or $new_resets_at == null
+        then (if $old_pct == null then new_window + {captured_at: $written_at, stale_suspect: false} else old_window end)
+        elif $old_pct == null or $old_resets_at == null
         then new_window + {captured_at: $written_at, stale_suspect: false}
         elif $new_resets_at < $old_resets_at then old_window + {stale_suspect: true}
         elif $new_resets_at > $old_resets_at then new_window + {captured_at: $written_at, stale_suspect: false}

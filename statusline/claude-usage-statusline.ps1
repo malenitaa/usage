@@ -141,7 +141,13 @@ function Resolve-Window($oldWin, $newPct, $newReset) {
   if ($null -eq $oldWin) { return $fresh }
   $oldPct = $oldWin.pct
   $oldReset = $oldWin.resets_at
-  if ($null -eq $oldPct -or $null -eq $newPct -or $null -eq $oldReset -or $null -eq $newReset) { return $fresh }
+  # An incomplete NEW reading must never erase a known value - a concurrent
+  # session missing this window used to null out the other session's data.
+  if ($null -eq $newPct -or $null -eq $newReset) {
+    if ($null -eq $oldPct) { return $fresh }
+    return $oldWin
+  }
+  if ($null -eq $oldPct -or $null -eq $oldReset) { return $fresh }
   $keepOld = [ordered]@{
     pct = $oldWin.pct; resets_at = $oldWin.resets_at
     captured_at = $oldWin.captured_at; stale_suspect = $true
