@@ -13,6 +13,17 @@ const IS_MAC = process.platform === 'darwin';
 let tray = null;
 let popover = null;
 let popoverKey = null;
+let popoverBornAt = 0;
+
+// After a few hours alive, macOS quietly drops a panel's join-all-Spaces
+// behavior and nothing re-arms it: not re-asserting the flag, not toggling
+// it off and on (both were tried and both decayed the same way). A window
+// WITHOUT the flag opens invisibly on the Space it was born on instead of
+// where the user is. What never fails is a freshly created window — every
+// app relaunch "fixed" it — so past this age the popover is rebuilt on
+// open. Rebuilding costs ~200ms once after an idle stretch; reopening
+// within the window stays instant.
+const POPOVER_MAX_AGE_MS = 5 * 60 * 1000;
 let refreshTimer = null;
 
 // The raw figure can exceed 100: a request admitted just under the cap runs to
@@ -176,23 +187,38 @@ function positionPopover() {
 }
 
 function togglePopover() {
-  // The two styles need different window flags (vibrancy cannot be switched on
-  // an existing window), so a config change means building a new popover.
-  const { panelStyle, panelTint } = readConfig();
-  const key = `${panelStyle}|${panelTint ?? ''}`;
-  if (popover && popoverKey !== key) {
-    popover.destroy();
-    popover = null;
-  }
-  if (!popover) {
-    popover = createPopover(panelStyle);
-    popoverKey = key;
-  }
-
-  if (popover.isVisible()) {
+  if (popover && popover.isVisible()) {
     popover.hide();
     return;
   }
+
+  // A config change needs new window flags (vibrancy cannot be switched on
+  // an existing window), and an aged window has lost its all-Spaces
+  // behavior (see POPOVER_MAX_AGE_MS) — both mean building a new popover.
+  const { panelStyle, panelTint } = readConfig();
+  const key = `${panelStyle}|${panelTint ?? ''}`;
+  if (popover && (popoverKey !== key || Date.now() - popoverBornAt > POPOVER_MAX_AGE_MS)) {
+    popover.destroy();
+    popover = null;
+  }
+
+  if (!popover) {
+    popover = createPopover(panelStyle);
+    popoverKey = key;
+    popoverBornAt = Date.now();
+    // A window this young has not painted yet: showing now would flash an
+    // empty panel. ready-to-show fires once the renderer has its first
+    // frame (it refreshes itself on load, so no force-refresh needed).
+    popover.once('ready-to-show', () => {
+      if (!popover || popover.isDestroyed()) return;
+      positionPopover();
+      followCurrentSpace(popover);
+      popover.show();
+      popover.focus();
+    });
+    return;
+  }
+
   popover.webContents.send('force-refresh');
   positionPopover();
   followCurrentSpace(popover);
