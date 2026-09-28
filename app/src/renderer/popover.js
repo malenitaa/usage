@@ -74,6 +74,17 @@ function formatCountdown(resetsAtEpochSeconds) {
   if (resetsAtEpochSeconds == null) return T.resetUnknown;
   const diffSeconds = resetsAtEpochSeconds - Math.floor(Date.now() / 1000);
   if (diffSeconds <= 0) return T.resetNow;
+  // Past a day, raw hours make the reader do the division ("76h... /24?"):
+  // switch to days + hours and append the actual weekday and time it lands
+  // on, in the system locale. Under a day, hours + minutes as always.
+  if (diffSeconds >= 86400) {
+    const days = Math.floor(diffSeconds / 86400);
+    const hours = Math.floor((diffSeconds % 86400) / 3600);
+    const when = new Date(resetsAtEpochSeconds * 1000).toLocaleString([], {
+      weekday: 'short', hour: '2-digit', minute: '2-digit'
+    });
+    return T.resetInDaysTemplate.replace('{d}', days).replace('{h}', hours).replace('{when}', when);
+  }
   const hours = Math.floor(diffSeconds / 3600);
   const minutes = Math.floor((diffSeconds % 3600) / 60);
   return T.resetInTemplate.replace('{h}', hours).replace('{m}', minutes);
