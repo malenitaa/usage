@@ -19,6 +19,10 @@
   "build": {
     "appId": "com.malenitaa.claude-usage-tray",
     "productName": "Claude Usage",
+    "toolsets": {
+      "nsis": "1.2.1",
+      "winCodeSign": "1.1.0"
+    },
     "files": [
       "src/**/*"
     ],
