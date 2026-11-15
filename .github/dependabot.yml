@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Build-time dependencies (Electron, electron-builder). The app ships with
+  # no runtime npm dependencies.
+  - package-ecosystem: npm
+    directory: /app
+    schedule:
+      interval: weekly
+    # Don't pick up a release until it has been public for a week: most
+    # compromised packages are caught and yanked within days.
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
