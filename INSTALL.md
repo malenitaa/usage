@@ -6,7 +6,7 @@ days — with the official figure Anthropic reports, not an estimate.
 
 Requirements:
 
-- macOS or Windows.
+- macOS 13 (Ventura) or later, or Windows 10 or later.
 - [Claude Code](https://claude.com/claude-code) installed, with a
   **Pro or Max** claude.ai account (quota data only exists for those
   accounts).
@@ -82,7 +82,8 @@ Go to [Releases](https://github.com/malenitaa/usage/releases) and:
   M1/M2/M3/M4 — which is most Macs today; `x64` for Intel Macs). Not sure
   which one you have? Apple menu → About This Mac: "Chip" means Apple
   Silicon, "Processor … Intel" means Intel. Open it and drag "Claude
-  Usage" to "Applications" like any other app.
+  Usage" to "Applications" like any other app. Needs macOS 13 (Ventura)
+  or later; on macOS 12 (Monterey), use version 1.2.7.
 - **Windows:** download `Claude Usage Setup <version>.exe` and run it.
   The icon appears in the system tray (bottom-right, near the clock —
   check the overflow arrow if you don't see it).
