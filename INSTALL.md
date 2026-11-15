@@ -79,7 +79,9 @@ starts getting recorded automatically. Nothing else needs restarting.
 Go to [Releases](https://github.com/malenitaa/usage/releases) and:
 
 - **macOS:** download the `.dmg` (`arm64` for Apple Silicon Macs —
-  M1/M2/M3/M4 — which is most Macs today). Open it and drag "Claude
+  M1/M2/M3/M4 — which is most Macs today; `x64` for Intel Macs). Not sure
+  which one you have? Apple menu → About This Mac: "Chip" means Apple
+  Silicon, "Processor … Intel" means Intel. Open it and drag "Claude
   Usage" to "Applications" like any other app.
 - **Windows:** download `Claude Usage Setup <version>.exe` and run it.
   The icon appears in the system tray (bottom-right, near the clock —
